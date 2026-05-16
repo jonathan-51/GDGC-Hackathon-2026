@@ -74,14 +74,14 @@ export default function CoSign() {
   if (!passport || !profile) {
     return (
       <div className="max-w-xl space-y-4">
-        <h2 className="text-4xl font-mono font-bold text-blue-400">Verify &amp; Scan</h2>
+        <h2 className="text-4xl font-mono font-bold text-[#F2DDA4]">Verify &amp; Scan</h2>
         <TabBar pathname={pathname} />
         <p className="text-slate-400">
           You need a card of your own before you can co-sign someone else's.
         </p>
         <Link
           to="/register"
-          className="inline-block px-6 py-2.5 rounded-full bg-blue-600 text-white font-semibold hover:bg-blue-500 transition"
+          className="inline-block px-6 py-2.5 rounded-full bg-[#C7A97A] text-white font-semibold hover:bg-[#E6B347] transition"
         >
           Generate your card
         </Link>
@@ -154,7 +154,7 @@ export default function CoSign() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <header className="space-y-4">
-        <h2 className="text-4xl font-mono font-bold text-blue-400">Verify &amp; Scan</h2>
+        <h2 className="text-4xl font-mono font-bold text-[#F2DDA4]">Verify &amp; Scan</h2>
         <TabBar pathname={pathname} />
         <p className="text-slate-400">
           Scan a peer's Illume card, then sign with your own biometric. Each
@@ -178,18 +178,18 @@ export default function CoSign() {
       )}
 
       {stage === 'review' && target && scanned && (
-        <div className="rounded-2xl border border-blue-700/30 bg-navy-deep/60 p-6 space-y-5">
+        <div className="rounded-2xl border border-[#8B5E15]/30 bg-navy-deep/60 p-6 space-y-5">
           <div className="flex items-center gap-4">
             {target.photo && (
               <img
                 src={target.photo}
                 alt={`${target.handle} portrait`}
-                className="w-16 h-16 rounded-full object-cover border-2 border-blue-500/60 shadow-[0_0_20px_rgba(59,130,246,0.3)] shrink-0"
+                className="w-16 h-16 rounded-full object-cover border-2 border-[#E6B347]/60 shadow-[0_0_20px_rgba(230,179,71,0.3)] shrink-0"
               />
             )}
             <div>
               <div className="text-slate-500 font-mono text-xs uppercase">You are vouching for</div>
-              <div className="text-3xl font-mono text-blue-400 mt-1">@{target.handle}</div>
+              <div className="text-3xl font-mono text-[#F2DDA4] mt-1">@{target.handle}</div>
               <div className="text-xs text-slate-500 font-mono mt-1">
                 {scanned.hash.slice(0, 16)}…
               </div>
@@ -209,15 +209,15 @@ export default function CoSign() {
                   const mutual = myVoucherIds.has(v.voucher.id);
                   return (
                     <li key={v.id} className={`flex items-start justify-between gap-3 rounded-lg px-3 py-2 border text-sm ${
-                      mutual ? 'border-blue-500/30 bg-blue-500/5' : 'border-white/5 bg-white/[0.03]'
+                      mutual ? 'border-[#E6B347]/30 bg-[#E6B347]/5' : 'border-white/5 bg-white/[0.03]'
                     }`}>
                       <div className="flex items-center gap-2 min-w-0">
-                        {mutual && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />}
+                        {mutual && <span className="w-1.5 h-1.5 rounded-full bg-[#F2DDA4] shrink-0" />}
                         <div className="min-w-0">
-                          <Link to={`/p/${v.voucher.handle}`} className={`font-mono text-sm hover:underline ${mutual ? 'text-blue-400' : 'text-white'}`}>
+                          <Link to={`/p/${v.voucher.handle}`} className={`font-mono text-sm hover:underline ${mutual ? 'text-[#F2DDA4]' : 'text-white'}`}>
                             @{v.voucher.handle}
                           </Link>
-                          {mutual && <span className="ml-2 text-[10px] text-blue-400/70 font-mono">mutual</span>}
+                          {mutual && <span className="ml-2 text-[10px] text-[#F2DDA4]/70 font-mono">mutual</span>}
                           {v.context && <div className="text-xs text-slate-400 mt-0.5 truncate">{v.context}</div>}
                         </div>
                       </div>
@@ -267,19 +267,19 @@ export default function CoSign() {
               onChange={(e) => setContext(e.target.value)}
               placeholder="e.g. lived next door for two years"
               maxLength={140}
-              className="w-full bg-navy border border-blue-500/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-blue-500 transition"
+              className="w-full bg-navy border border-[#E6B347]/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-[#E6B347] transition"
             />
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setStage('verify')}
-              className="px-6 py-2.5 rounded-full bg-blue-600 text-white font-semibold hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition"
+              className="px-6 py-2.5 rounded-full bg-[#C7A97A] text-white font-semibold hover:shadow-[0_0_20px_rgba(230,179,71,0.3)] transition"
             >
               Sign with my biometric
             </button>
             <button
               onClick={reset}
-              className="px-4 py-2 text-slate-400 hover:text-blue-400"
+              className="px-4 py-2 text-slate-400 hover:text-[#F2DDA4]"
             >
               Cancel
             </button>
@@ -297,19 +297,19 @@ export default function CoSign() {
       )}
 
       {stage === 'submitting' && (
-        <div className="text-blue-400 font-mono animate-pulse text-center py-12">
+        <div className="text-[#F2DDA4] font-mono animate-pulse text-center py-12">
           Publishing vouch…
         </div>
       )}
 
       {stage === 'done' && target && (
-        <div className="rounded-2xl border border-blue-500/40 bg-blue-500/5 p-8 text-center space-y-4">
-          <div className="text-blue-400 text-5xl font-mono">✓</div>
+        <div className="rounded-2xl border border-[#E6B347]/40 bg-[#E6B347]/5 p-8 text-center space-y-4">
+          <div className="text-[#F2DDA4] text-5xl font-mono">✓</div>
           <div className="font-mono text-lg text-white">
             You vouched for{' '}
             <Link
               to={`/p/${target.handle}`}
-              className="text-blue-400 hover:underline"
+              className="text-[#F2DDA4] hover:underline"
             >
               @{target.handle}
             </Link>
@@ -326,13 +326,13 @@ export default function CoSign() {
           <div className="flex gap-3 justify-center">
             <button
               onClick={reset}
-              className="px-6 py-2.5 rounded-full border border-blue-500/40 text-blue-400 font-mono hover:bg-blue-500/10 transition"
+              className="px-6 py-2.5 rounded-full border border-[#E6B347]/40 text-[#F2DDA4] font-mono hover:bg-[#E6B347]/10 transition"
             >
               Scan another
             </button>
             <Link
               to="/card"
-              className="px-6 py-2.5 rounded-full bg-blue-600 text-white font-semibold hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition"
+              className="px-6 py-2.5 rounded-full bg-[#C7A97A] text-white font-semibold hover:shadow-[0_0_20px_rgba(230,179,71,0.3)] transition"
             >
               View my card
             </Link>
@@ -366,8 +366,8 @@ function TabBar({ pathname }: { pathname: string }) {
             to={to}
             className={`px-4 py-2 font-mono text-sm border-b-2 -mb-px transition ${
               active
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-slate-400 hover:text-blue-400'
+                ? 'border-[#E6B347] text-[#F2DDA4]'
+                : 'border-transparent text-slate-400 hover:text-[#F2DDA4]'
             }`}
           >
             {label}

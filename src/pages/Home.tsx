@@ -72,7 +72,7 @@ export default function Home() {
           transition={{ duration: 0.7 }}
         >
           <h1 className="text-5xl md:text-6xl font-mono font-bold leading-tight">
-            <span className="text-blue-500">ILLUME:</span>{' '}
+            <span className="text-[#E6B347]">ILLUME:</span>{' '}
             <span className="text-white">Reclaiming<br />trust in a world<br />without records</span>
           </h1>
           <p className="mt-5 text-slate-400 text-sm max-w-md leading-relaxed">
@@ -81,7 +81,7 @@ export default function Home() {
           <div className="mt-8">
             <Link
               to="/register"
-              className="px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition-all shadow-lg"
+              className="px-7 py-3 rounded-full bg-[#C7A97A] text-white font-semibold text-sm hover:bg-[#E6B347] transition-all shadow-lg"
             >
               Generate Card
             </Link>
@@ -152,9 +152,9 @@ export default function Home() {
 function HeroBackground() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
-      {/* blue glow blobs */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-700/10 rounded-full blur-[120px]" />
-      <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-blue-500/8 rounded-full blur-[80px]" />
+      {/* gold glow blobs */}
+      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#E6B347]/8 rounded-full blur-[120px]" />
+      <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-[#C7A97A]/6 rounded-full blur-[80px]" />
 
       {/* ILLUME watermark */}
       <div
@@ -194,10 +194,10 @@ function CrossStar({ x, y, size }: { x: string; y: string; size: number }) {
       height={size * 2}
       viewBox="-1 -1 2 2"
     >
-      <line x1="-1" y1="0" x2="1" y2="0" stroke="#3b82f6" strokeWidth="0.18" strokeLinecap="round" />
-      <line x1="0" y1="-1" x2="0" y2="1" stroke="#3b82f6" strokeWidth="0.18" strokeLinecap="round" />
-      <line x1="-0.7" y1="-0.7" x2="0.7" y2="0.7" stroke="#3b82f6" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
-      <line x1="0.7" y1="-0.7" x2="-0.7" y2="0.7" stroke="#3b82f6" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
+      <line x1="-1" y1="0" x2="1" y2="0" stroke="#E6B347" strokeWidth="0.18" strokeLinecap="round" />
+      <line x1="0" y1="-1" x2="0" y2="1" stroke="#E6B347" strokeWidth="0.18" strokeLinecap="round" />
+      <line x1="-0.7" y1="-0.7" x2="0.7" y2="0.7" stroke="#E6B347" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
+      <line x1="0.7" y1="-0.7" x2="-0.7" y2="0.7" stroke="#E6B347" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
     </svg>
   );
 }
@@ -228,7 +228,7 @@ function GeodesicSphere() {
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="w-72 h-72 md:w-[420px] md:h-[420px]"
-      style={{ filter: 'drop-shadow(0 0 32px rgba(37,99,235,0.45))' }}
+      style={{ filter: 'drop-shadow(0 0 40px rgba(230,179,71,0.55))' }}
     >
       <defs>
         <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%">
@@ -239,8 +239,9 @@ function GeodesicSphere() {
           </feMerge>
         </filter>
         <radialGradient id="sphereBg" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#1d4ed8" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0" />
+          <stop offset="0%" stopColor="#E6B347" stopOpacity="0.22" />
+          <stop offset="60%" stopColor="#C7A97A" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#E6B347" stopOpacity="0" />
         </radialGradient>
       </defs>
 
@@ -256,7 +257,7 @@ function GeodesicSphere() {
         return (
           <line
             key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="#3b82f6"
+            stroke="#E6B347"
             strokeWidth={depth > 0.55 ? 0.9 : 0.5}
             strokeOpacity={Math.max(0.08, Math.min(0.85, op))}
           />
@@ -271,9 +272,9 @@ function GeodesicSphere() {
         return (
           <g key={i} filter="url(#dotGlow)">
             <circle cx={x} cy={y} r={bright ? 4 : 2}
-              fill="#3b82f6" fillOpacity={0.25 + depth * 0.4} />
+              fill="#E6B347" fillOpacity={0.25 + depth * 0.4} />
             <circle cx={x} cy={y} r={bright ? 2 : 1}
-              fill={bright ? 'white' : '#93c5fd'} fillOpacity={0.7 + depth * 0.25} />
+              fill={bright ? 'white' : '#F2DDA4'} fillOpacity={0.7 + depth * 0.25} />
           </g>
         );
       })}
@@ -286,10 +287,10 @@ function GeodesicSphere() {
 // ---------------------------------------------------------------------------
 function PillarCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-2xl bg-gradient-to-b from-blue-900/60 to-navy-deep/80 border border-blue-700/30 p-7 flex flex-col min-h-[260px] hover:border-blue-600/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] transition-all">
+    <div className="rounded-2xl bg-gradient-to-b from-[#1a1200]/70 to-navy-deep/90 border border-gold-aged/20 p-7 flex flex-col min-h-[260px] hover:border-gold-aged/50 hover:shadow-[0_0_30px_rgba(230,179,71,0.25)] transition-all">
       <h3 className="text-lg font-mono font-bold text-white mb-3">{title}</h3>
       <p className="text-slate-400 text-sm leading-relaxed flex-1">{body}</p>
-      <div className="mt-6 flex justify-end text-blue-400 opacity-70">{icon}</div>
+      <div className="mt-6 flex justify-end text-gold-aged opacity-70">{icon}</div>
     </div>
   );
 }
@@ -339,10 +340,10 @@ function MicPillarIcon() {
 // ---------------------------------------------------------------------------
 function PhoneMockup() {
   return (
-    <div className="mx-auto w-56 h-[400px] rounded-[2.5rem] border-2 border-slate-700 bg-navy-deep p-2 shadow-[0_0_60px_rgba(59,130,246,0.2)]">
-      <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-blue-900/40 to-navy-deep flex flex-col items-center justify-center gap-5 p-5">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/50 to-blue-700/50 flex items-center justify-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5" className="w-8 h-8">
+    <div className="mx-auto w-56 h-[400px] rounded-[2.5rem] border-2 border-slate-700 bg-navy-deep p-2 shadow-[0_0_60px_rgba(230,179,71,0.2)]">
+      <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#1a1200]/80 to-navy-deep flex flex-col items-center justify-center gap-5 p-5">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#E6B347]/40 to-[#C7A97A]/40 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F2DDA4" strokeWidth="1.5" className="w-8 h-8">
             <circle cx="12" cy="8" r="4" />
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
           </svg>
@@ -351,7 +352,7 @@ function PhoneMockup() {
           <QrPattern />
         </div>
         <div className="text-[10px] font-mono text-slate-400 tracking-widest">SCAN TO VERIFY</div>
-        <div className="text-xs font-mono text-blue-400/70">@username</div>
+        <div className="text-xs font-mono text-gold-aged/70">@username</div>
       </div>
     </div>
   );

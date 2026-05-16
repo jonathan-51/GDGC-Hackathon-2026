@@ -60,7 +60,7 @@ export default function Register() {
     QRCode.toDataURL(payload, {
       width: 320,
       margin: 1,
-      color: { dark: '#0a0e27', light: '#00ffd1' },
+      color: { dark: '#050505', light: '#F2DDA4' },
     }).then(setQrDataUrl);
   }, [passport]);
 

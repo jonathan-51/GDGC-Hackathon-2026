@@ -26,7 +26,7 @@ export default function Card() {
     if (!passport) return;
     QRCode.toDataURL(
       JSON.stringify({ h: passport.handle, id: passport.hash, pid: passport.profileId }),
-      { width: 280, margin: 1, color: { dark: '#0a0e27', light: '#00ffd1' } },
+      { width: 280, margin: 1, color: { dark: '#050505', light: '#F2DDA4' } },
     ).then(setQr);
   }, [passport]);
 

@@ -82,7 +82,7 @@ export default function ScanProfile() {
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <header className="space-y-2">
-        <h2 className="text-4xl font-mono font-bold text-blue-400">Verify &amp; Scan</h2>
+        <h2 className="text-4xl font-mono font-bold text-[#F2DDA4]">Verify &amp; Scan</h2>
       </header>
 
       <div className="flex gap-1 border-b border-white/10">
@@ -97,8 +97,8 @@ export default function ScanProfile() {
               to={to}
               className={`px-4 py-2 font-mono text-sm border-b-2 -mb-px transition ${
                 active
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-blue-400'
+                  ? 'border-[#E6B347] text-[#F2DDA4]'
+                  : 'border-transparent text-slate-400 hover:text-[#F2DDA4]'
               }`}
             >
               {label}
@@ -121,19 +121,19 @@ export default function ScanProfile() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. @alice"
-            className="flex-1 bg-navy-deep border border-blue-500/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-blue-500 transition"
+            className="flex-1 bg-navy-deep border border-[#E6B347]/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-[#E6B347] transition"
           />
           <button
             type="submit"
             disabled={!query.trim()}
-            className="px-5 py-3 rounded bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition"
+            className="px-5 py-3 rounded bg-[#C7A97A] text-white font-semibold text-sm disabled:opacity-40 hover:shadow-[0_0_20px_rgba(230,179,71,0.3)] transition"
           >
             Open
           </button>
         </div>
         {searchError && <div className="text-xs text-red-300 font-mono">{searchError}</div>}
         {query.trim() && (
-          <ul className="rounded-lg border border-blue-700/20 bg-navy-deep/40 divide-y divide-blue-500/10 overflow-hidden">
+          <ul className="rounded-lg border border-[#8B5E15]/20 bg-navy-deep/40 divide-y divide-[#E6B347]/10 overflow-hidden">
             {searching && results.length === 0 && (
               <li className="px-4 py-3 text-xs text-slate-500 font-mono">Searching…</li>
             )}
@@ -147,14 +147,14 @@ export default function ScanProfile() {
                 <button
                   type="button"
                   onClick={() => setSelectedHandle(p.handle)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/5 transition text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#E6B347]/5 transition text-left"
                 >
                   {p.photo ? (
-                    <img src={p.photo} alt="" className="w-8 h-8 rounded-full object-cover border border-blue-500/30" />
+                    <img src={p.photo} alt="" className="w-8 h-8 rounded-full object-cover border border-[#E6B347]/30" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-black/40 border border-blue-700/30" />
+                    <div className="w-8 h-8 rounded-full bg-black/40 border border-[#8B5E15]/30" />
                   )}
-                  <span className="font-mono text-blue-400 text-sm">@{p.handle}</span>
+                  <span className="font-mono text-[#F2DDA4] text-sm">@{p.handle}</span>
                 </button>
               </li>
             ))}
@@ -166,7 +166,7 @@ export default function ScanProfile() {
         <div className="text-sm font-mono text-slate-400 uppercase tracking-widest">
           Or scan a QR code
         </div>
-        <div className="rounded-2xl border border-blue-700/30 bg-navy-deep/60 p-4">
+        <div className="rounded-2xl border border-[#8B5E15]/30 bg-navy-deep/60 p-4">
           <QRScanner
             key={scanKey}
             onResult={handleScan}
@@ -180,7 +180,7 @@ export default function ScanProfile() {
           <div>{error}</div>
           <button
             onClick={() => { setError(null); setScanKey((k) => k + 1); }}
-            className="px-4 py-1.5 rounded-full border border-blue-500/40 text-blue-400 font-mono text-xs hover:bg-blue-500/10"
+            className="px-4 py-1.5 rounded-full border border-[#E6B347]/40 text-[#F2DDA4] font-mono text-xs hover:bg-[#E6B347]/10"
           >
             Try again
           </button>
@@ -261,10 +261,10 @@ function ProfilePopup({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="bg-navy-deep border border-blue-500/30 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+        className="bg-navy-deep border border-[#E6B347]/30 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-[0_0_20px_rgba(230,179,71,0.3)]"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-navy-deep border-b border-blue-500/10 px-5 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-navy-deep border-b border-[#E6B347]/10 px-5 py-4 flex items-center justify-between">
           <span className="text-xs font-mono uppercase tracking-widest text-slate-400">Profile</span>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
@@ -288,16 +288,16 @@ function ProfilePopup({
               <div className="flex items-center gap-4">
                 {profile.photo ? (
                   <img src={profile.photo} alt={profile.handle}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-blue-500/60 shadow-[0_0_20px_rgba(59,130,246,0.3)] shrink-0" />
+                    className="w-20 h-20 rounded-full object-cover border-2 border-[#E6B347]/60 shadow-[0_0_20px_rgba(230,179,71,0.3)] shrink-0" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-navy-light border-2 border-blue-700/30 flex items-center justify-center shrink-0">
+                  <div className="w-20 h-20 rounded-full bg-navy-light border-2 border-[#8B5E15]/30 flex items-center justify-center shrink-0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-9 h-9 text-slate-500">
                       <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
                     </svg>
                   </div>
                 )}
                 <div>
-                  <div className="text-2xl font-mono font-bold text-blue-400">@{profile.handle}</div>
+                  <div className="text-2xl font-mono font-bold text-[#F2DDA4]">@{profile.handle}</div>
                   <div className="text-xs text-slate-500 font-mono mt-1">
                     Joined {new Date(profile.created_at).toLocaleDateString()}
                   </div>
@@ -316,7 +316,7 @@ function ProfilePopup({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {credentials.map((c) => (
-                      <span key={c.id} className="px-2.5 py-1 rounded-full border border-blue-500/30 bg-blue-500/5 text-blue-400 font-mono text-xs">
+                      <span key={c.id} className="px-2.5 py-1 rounded-full border border-[#E6B347]/30 bg-[#E6B347]/5 text-[#F2DDA4] font-mono text-xs">
                         {c.skill}
                       </span>
                     ))}
@@ -328,7 +328,7 @@ function ProfilePopup({
               {mutualVouches.length > 0 && (
                 <div>
                   <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-[#F2DDA4] inline-block" />
                     Mutual connections ({mutualVouches.length})
                   </div>
                   <ul className="space-y-2">
@@ -360,16 +360,16 @@ function ProfilePopup({
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2 border-t border-blue-500/10">
+              <div className="flex gap-3 pt-2 border-t border-[#E6B347]/10">
                 <Link
                   to={`/cosign?handle=${encodeURIComponent(profile.handle)}&hash=${encodeURIComponent(profile.face_hash)}&pid=${encodeURIComponent(profile.id)}`}
-                  className="flex-1 py-2.5 rounded-full bg-blue-600 text-white font-semibold text-sm text-center hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition"
+                  className="flex-1 py-2.5 rounded-full bg-[#C7A97A] text-white font-semibold text-sm text-center hover:shadow-[0_0_20px_rgba(230,179,71,0.3)] transition"
                 >
                   Vouch this person
                 </Link>
                 <button
                   onClick={onViewFull}
-                  className="px-4 py-2.5 rounded-full border border-blue-500/30 text-blue-400 font-mono text-sm hover:bg-blue-500/10 transition"
+                  className="px-4 py-2.5 rounded-full border border-[#E6B347]/30 text-[#F2DDA4] font-mono text-sm hover:bg-[#E6B347]/10 transition"
                 >
                   Full profile
                 </button>
@@ -386,17 +386,17 @@ function VoucherRow({ vouch: v, mutual }: { vouch: VouchWithVoucher; mutual: boo
   return (
     <li className={`flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 border ${
       mutual
-        ? 'border-blue-500/30 bg-blue-500/5'
+        ? 'border-[#E6B347]/30 bg-[#E6B347]/5'
         : 'border-white/5 bg-navy-light/20'
     }`}>
       <div className="flex items-center gap-2 min-w-0">
         {mutual && (
-          <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 mt-0.5" />
+          <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#F2DDA4] mt-0.5" />
         )}
         <div className="min-w-0">
           <Link
             to={`/p/${v.voucher.handle}`}
-            className={`font-mono text-sm hover:underline ${mutual ? 'text-blue-400' : 'text-white'}`}
+            className={`font-mono text-sm hover:underline ${mutual ? 'text-[#F2DDA4]' : 'text-white'}`}
           >
             @{v.voucher.handle}
           </Link>

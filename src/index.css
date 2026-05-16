@@ -12,8 +12,8 @@ body,
 
 body {
   margin: 0;
-  background-color: #0a0e27;
-  color: #e2e8f0;
+  background-color: #050505;
+  color: #C7A97A;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -21,4 +21,60 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   letter-spacing: -0.02em;
+}
+
+/* Kill all browser default blue focus rings — replace with gold */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: 2px solid #E6B347;
+  outline-offset: 2px;
+}
+
+/* Override html5-qrcode library injected blue UI */
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-camera-permission,
+#html5-qrcode-anchor-scan-type-change,
+#html5-qrcode-select-camera,
+[id^="html5-qrcode"] button,
+[id^="html5-qrcode"] select,
+[id^="html5-qrcode"] a {
+  color: #E6B347 !important;
+  border-color: #E6B347 !important;
+  background: transparent !important;
+  accent-color: #E6B347 !important;
+}
+
+/* html5-qrcode scanning border/box */
+#html5qr-code-full-region {
+  border: none !important;
+}
+#html5qr-code-full-region__scan_region {
+  border: 2px solid #E6B347 !important;
+}
+#html5qr-code-full-region__dashboard {
+  background: transparent !important;
+}
+#html5qr-code-full-region__dashboard_section_csr span,
+#html5qr-code-full-region__dashboard_section_swaplink {
+  color: #C7A97A !important;
+}
+
+/* Leaflet zoom control — no blue */
+.leaflet-control-zoom a {
+  background: #111111 !important;
+  color: #E6B347 !important;
+  border-color: #E6B347/20 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #1a1a1a !important;
+  color: #F2DDA4 !important;
+}
+
+/* Remove any stray blue scrollbar or selection color */
+::selection {
+  background: rgba(230, 179, 71, 0.3);
+  color: #F2DDA4;
 }
