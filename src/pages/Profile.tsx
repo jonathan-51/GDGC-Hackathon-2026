@@ -22,10 +22,7 @@ import type {
 
 export default function PublicProfile() {
   const { handle = '' } = useParams<{ handle: string }>();
-  const { profile: viewerProfile, credentials: viewerCredentials } = useUser();
-  const viewerSkills = viewerCredentials
-    .filter((c) => !c.revoked)
-    .map((c) => c.skill.toLowerCase());
+  const { profile: viewerProfile } = useUser();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -313,7 +310,6 @@ export default function PublicProfile() {
         <Section title="Skill assessments">
           <div className="space-y-4">
             {interviews.map((t) => {
-              const canViewTranscript = viewerSkills.includes(t.skill.toLowerCase());
               const testReviews = reviewsByTest[t.id] ?? [];
               return (
               <div key={t.id} className="rounded-xl border border-cyan-electric/15 bg-navy-deep/60 overflow-hidden">
@@ -336,23 +332,12 @@ export default function PublicProfile() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-2">
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
                       Spoken transcript
-                      {!canViewTranscript && (
-                        <span className="px-1.5 py-0.5 rounded border border-slate-600/40 text-slate-500 text-[9px]">
-                          requires {t.skill} credential
-                        </span>
-                      )}
                     </div>
-                    {canViewTranscript ? (
-                      <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
-                        {t.answer}
-                      </div>
-                    ) : (
-                      <div className="font-mono text-sm text-slate-600 bg-black/30 rounded px-3 py-2 border border-white/5 select-none blur-sm">
-                        {t.answer}
-                      </div>
-                    )}
+                    <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
+                      {t.answer}
+                    </div>
                   </div>
                   {testReviews.length > 0 && (
                     <div>
