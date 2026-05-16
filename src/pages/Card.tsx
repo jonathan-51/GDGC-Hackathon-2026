@@ -87,13 +87,13 @@ export default function Card() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-cyan-electric/30 bg-navy-deep p-8 shadow-glow"
+        className="rounded-2xl border border-cyan-electric/30 bg-navy-deep p-4 md:p-8 shadow-glow"
       >
-        <div className="flex flex-col md:flex-row gap-8 items-center">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
           {qr ? (
-            <img src={qr} alt="Your Vouch QR" className="w-64 h-64 rounded-lg shrink-0" />
+            <img src={qr} alt="Your Vouch QR" className="w-48 h-48 md:w-64 md:h-64 rounded-lg shrink-0" />
           ) : (
-            <div className="w-64 h-64 bg-black/40 rounded-lg" />
+            <div className="w-48 h-48 md:w-64 md:h-64 bg-black/40 rounded-lg" />
           )}
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div className="flex items-center gap-4 justify-center md:justify-start">
@@ -108,7 +108,7 @@ export default function Card() {
                 <div className="text-slate-500 font-mono text-xs uppercase tracking-widest">
                   Identity
                 </div>
-                <div className="text-4xl font-mono font-bold text-cyan-electric mt-1">
+                <div className="text-2xl md:text-4xl font-mono font-bold text-cyan-electric mt-1 break-all">
                   @{profile.handle}
                 </div>
                 <div className="text-xs text-slate-500 font-mono mt-1">
