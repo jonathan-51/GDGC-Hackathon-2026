@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
 import { generateSkillScenario, geminiEnabled, gradeSkillAnswer, pinnedTranscript, type AiGrade } from '../lib/gemini';
 import { createSkillTest, maybeFinalizeTest } from '../lib/db';
+import InterviewVideo from '../components/InterviewVideo';
 import { supabase } from '../lib/supabase';
 import { SKILL_TEST_SECONDS, VOUCH_SKILLS } from '../lib/types';
 
@@ -54,9 +55,15 @@ export default function SkillTest() {
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const interimRef = useRef('');
+  const finalTextRef = useRef('');
+  const recognitionActiveRef = useRef(false);
+  const handleSubmitRef = useRef<(usedSeconds: number) => void>(() => {});
+  const secondsLeftRef = useRef(SKILL_TEST_SECONDS);
+  const autoSubmittedRef = useRef(false);
 
   // Cleanup on unmount
   useEffect(() => () => {
+    recognitionActiveRef.current = false;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     recognitionRef.current?.stop();
   }, []);
@@ -78,10 +85,55 @@ export default function SkillTest() {
       const elapsed = Math.floor((Date.now() - start) / 1000);
       const left = Math.max(0, SKILL_TEST_SECONDS - elapsed);
       setSecondsLeft(left);
+      secondsLeftRef.current = left;
       if (left === 0) { clearInterval(id); handleSubmit(SKILL_TEST_SECONDS); }
     }, 250);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  // Anti-tab-switch: during the live assessment, leaving the tab/window or
+  // exiting fullscreen auto-submits the attempt. Reason: this is a proctored
+  // skill test and the candidate must not be able to consult other sources.
+  useEffect(() => {
+    if (stage !== 'answering') return;
+    autoSubmittedRef.current = false;
+
+    const forceSubmit = (reason: string) => {
+      if (autoSubmittedRef.current) return;
+      autoSubmittedRef.current = true;
+      setError(reason);
+      handleSubmitRef.current(SKILL_TEST_SECONDS - secondsLeftRef.current);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) forceSubmit('You left the assessment tab — your attempt was auto-submitted.');
+    };
+    const onBlur = () => forceSubmit('You switched away from the assessment window — your attempt was auto-submitted.');
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        forceSubmit('You exited fullscreen during the assessment — your attempt was auto-submitted.');
+      }
+    };
+    const blockKeys = (e: KeyboardEvent) => {
+      // Block common tab/window-switch and devtools shortcuts. Browsers won't
+      // let us block Ctrl+Tab / Alt+Tab at the OS level, but we catch what we can.
+      const k = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && (k === 't' || k === 'w' || k === 'n' || k === 'tab')) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    window.addEventListener('keydown', blockKeys);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      window.removeEventListener('keydown', blockKeys);
+    };
   }, [stage]);
 
   if (loading) return <div className="text-slate-400 font-mono">Loading…</div>;
@@ -125,6 +177,12 @@ export default function SkillTest() {
       const ok = await startCamera();
       if (!ok) return;
     }
+    try {
+      await document.documentElement.requestFullscreen?.();
+    } catch {
+      // Fullscreen denied — assessment still proceeds; visibility/blur listeners
+      // remain the primary anti-cheat signal.
+    }
     setStage('generating');
     setError(null);
     try {
@@ -146,25 +204,46 @@ export default function SkillTest() {
       recorderRef.current = recorder;
       setRecording(true);
 
-      // Start speech recognition (skipped when transcript is pinned for demo)
+      // Start speech recognition (skipped when transcript is pinned for demo).
+      // We accumulate finalised text into finalTextRef so a long answer never
+      // gets wiped if Chrome's recognition restarts and resets event.results.
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SR && !pinned) {
-        const recognition = new SR();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-        recognition.onresult = (event) => {
-          let final = '';
-          let interim = '';
-          for (let i = 0; i < event.results.length; i++) {
-            const res = event.results[i];
-            if (res.isFinal) final += res[0].transcript + ' ';
-            else interim += res[0].transcript;
-          }
-          interimRef.current = interim;
-          setTranscript(final + interim);
+        finalTextRef.current = '';
+        interimRef.current = '';
+        const buildRecognition = () => {
+          const recognition = new SR();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+          recognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const res = event.results[i];
+              if (res.isFinal) finalTextRef.current += res[0].transcript + ' ';
+              else interim += res[0].transcript;
+            }
+            interimRef.current = interim;
+            setTranscript(finalTextRef.current + interim);
+          };
+          recognition.onerror = () => {};
+          // Chrome ends recognition on silence even with continuous:true. Restart
+          // while the candidate is still answering so transcription resumes.
+          (recognition as unknown as { onend: (() => void) | null }).onend = () => {
+            if (!recognitionActiveRef.current) return;
+            try {
+              const next = buildRecognition();
+              recognitionRef.current = next;
+              next.start();
+            } catch {
+              // start() can throw if called too quickly; ignore — the next
+              // onend (immediate) will retry once the engine is ready.
+            }
+          };
+          return recognition;
         };
-        recognition.onerror = () => {};
+        recognitionActiveRef.current = true;
+        const recognition = buildRecognition();
         recognition.start();
         recognitionRef.current = recognition;
       }
@@ -178,9 +257,13 @@ export default function SkillTest() {
 
   async function handleSubmit(usedSeconds: number) {
     if (!profile) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     setStage('grading');
 
-    // Stop recognition
+    // Stop recognition (and prevent the onend handler from restarting it)
+    recognitionActiveRef.current = false;
     recognitionRef.current?.stop();
 
     // Stop recording and collect video blob
@@ -197,7 +280,8 @@ export default function SkillTest() {
     setRecording(false);
     streamRef.current?.getTracks().forEach((t) => t.stop());
 
-    const finalAnswer = transcript.trim() || '(no spoken answer)';
+    const accumulated = (finalTextRef.current + interimRef.current).trim();
+    const finalAnswer = accumulated || transcript.trim() || '(no spoken answer)';
 
     try {
       const g = await gradeSkillAnswer(skill, question, finalAnswer);
@@ -249,6 +333,8 @@ export default function SkillTest() {
     }
   }
 
+  handleSubmitRef.current = handleSubmit;
+
   function reset() {
     setStage('choose');
     setSkill('');
@@ -258,6 +344,10 @@ export default function SkillTest() {
     setVideoUrl(null);
     setError(null);
     setRecording(false);
+    recognitionActiveRef.current = false;
+    recognitionRef.current?.stop();
+    finalTextRef.current = '';
+    interimRef.current = '';
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }
@@ -452,7 +542,7 @@ export default function SkillTest() {
       {videoUrl && (
         <div className="space-y-2">
           <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Your interview recording</div>
-          <video src={videoUrl} controls className="w-full rounded-xl border border-cyan-electric/20 bg-black" />
+          <InterviewVideo src={videoUrl} className="w-full rounded-xl border border-cyan-electric/20 bg-black" />
         </div>
       )}
       <div className="rounded-2xl border border-cyan-electric/40 bg-cyan-electric/5 p-8 text-center space-y-4">

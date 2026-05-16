@@ -12,6 +12,7 @@ import {
   uploadCredentialPhoto,
 } from '../lib/db';
 import { captureVideoFrame } from '../lib/biometric';
+import InterviewVideo from '../components/InterviewVideo';
 import type { Credential, CredentialPhoto, SkillReviewWithReviewer, SkillTest } from '../lib/types';
 
 export default function Card() {
@@ -485,7 +486,7 @@ function CredentialCard({
           {test.video_url && (
             <div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Interview recording</div>
-              <video src={test.video_url} controls className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
+              <InterviewVideo src={test.video_url} className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
             </div>
           )}
           {test.question && (
@@ -598,7 +599,7 @@ function SubmissionCard({ test: t }: { test: SkillTest }) {
           {t.video_url && (
             <div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Recording</div>
-              <video src={t.video_url} controls className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
+              <InterviewVideo src={t.video_url} className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
             </div>
           )}
           <div>

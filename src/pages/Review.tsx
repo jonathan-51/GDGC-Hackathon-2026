@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FaceVerify from '../components/FaceVerify';
+import InterviewVideo from '../components/InterviewVideo';
 import { useUser } from '../hooks/useUser';
 import {
   listAllPendingTests,
@@ -232,7 +233,7 @@ export default function Review() {
                   <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">
                     Interview recording
                   </div>
-                  <video src={t.video_url} controls className="w-full rounded-lg bg-black border border-cyan-electric/15 max-h-64" />
+                  <InterviewVideo src={t.video_url} className="w-full rounded-lg bg-black border border-cyan-electric/15 max-h-64" />
                 </div>
               )}
               <div>

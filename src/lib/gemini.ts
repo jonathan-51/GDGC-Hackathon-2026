@@ -151,13 +151,8 @@ function pinnedScenario(skill: string): string | null {
   return pinned[key] ?? null;
 }
 
-export function pinnedTranscript(skill: string): string | null {
-  const key = skill.trim().toLowerCase().replace(/\s+/g, ' ');
-  const pinned: Record<string, string> = {
-    'basic math tutor':
-      "Okay, first thing I do is stop and not tell them the answer. They're frustrated, and if I just correct them they'll feel worse and still won't get it. So I say: you know what, let me try your rule on an easier one. What's one-half plus one-half? They'll say one. Then I write their rule on the page — one-half plus one-half, add the tops, add the bottoms — that gives us two over four, which is one-half. So by your rule, half a pizza plus half a pizza is still half a pizza. And they laugh, because they can see that's obviously wrong. That's the moment. Now they know the rule is broken, they figured it out, I didn't have to tell them. Then I explain why: when you add, the pieces have to be the same size. Thirds and quarters aren't the same size, so you can't just add them — you'd be adding apples and oranges. We need to cut them into the same size first. So I draw it. One-third — cut into twelfths, that's four pieces. One-quarter — cut into twelfths, that's three pieces. Four pieces plus three pieces, all the same size — that's seven-twelfths. Then I check they actually got it, not just nodded along. I give them a fresh one: try one-half plus one-third. If they go to sixths and get five-sixths, they've got it. If they fall back into the old rule, we slow down and do the pizza picture again. And before they leave I say, when you see plus between two fractions, the first question is always — same bottom? That's the rule they take home.",
-  };
-  return pinned[key] ?? null;
+export function pinnedTranscript(_skill: string): string | null {
+  return null;
 }
 
 function pinnedGrade(skill: string): AiGrade | null {

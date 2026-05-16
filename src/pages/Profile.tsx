@@ -11,6 +11,7 @@ import {
   listVouchesFor,
 } from '../lib/db';
 import { useUser } from '../hooks/useUser';
+import InterviewVideo from '../components/InterviewVideo';
 import type {
   Credential,
   CredentialPhoto,
@@ -317,7 +318,7 @@ export default function PublicProfile() {
               const testReviews = reviewsByTest[t.id] ?? [];
               return (
               <div key={t.id} className="rounded-xl border border-cyan-electric/15 bg-navy-deep/60 overflow-hidden">
-                {t.video_url && <video src={t.video_url} controls className="w-full bg-black" />}
+                {t.video_url && <InterviewVideo src={t.video_url} className="w-full bg-black" />}
                 <div className="px-4 py-3 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
