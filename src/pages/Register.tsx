@@ -88,6 +88,7 @@ export default function Register() {
     embedding: number[];
     source: 'face' | 'platform';
     photo?: string;
+    credentialId?: string;
   }) {
     setStage('syncing');
     const trimmed = handle.trim();
@@ -112,6 +113,7 @@ export default function Register() {
         source: input.source,
         handle: profile.handle,
         hash: input.hash,
+        credentialId: input.credentialId,
         embedding: input.embedding,
         photo: input.photo,
         createdAt: Date.now(),
@@ -161,7 +163,7 @@ export default function Register() {
         setStage('idle');
         return;
       }
-      await finalize({ hash: result.hash, embedding: [], source: 'platform' });
+      await finalize({ hash: result.hash, embedding: [], source: 'platform', credentialId: result.credentialId });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Device biometric failed.');

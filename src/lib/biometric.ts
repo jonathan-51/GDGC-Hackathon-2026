@@ -85,6 +85,8 @@ export interface StoredPassport {
   source: PassportSource;
   handle: string;
   hash: string;
+  // Hex-encoded WebAuthn credential ID — platform source only.
+  credentialId?: string;
   // Empty array for platform (WebAuthn) source; face embedding for camera source.
   embedding: number[];
   // Data URL of a compressed still captured at registration time (face source only).

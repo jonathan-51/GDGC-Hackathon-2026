@@ -64,3 +64,29 @@ export async function registerPlatformBiometric(handle: string): Promise<{
   const hashBuf = await crypto.subtle.digest('SHA-256', rawId);
   return { credentialId, hash: bufToHex(hashBuf) };
 }
+
+function hexToBuf(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes.buffer as ArrayBuffer;
+}
+
+export async function authenticatePlatformBiometric(credentialId: string): Promise<boolean> {
+  if (!webAuthnSupported()) return false;
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+  try {
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ type: 'public-key', id: hexToBuf(credentialId) }],
+        userVerification: 'required',
+        timeout: 60_000,
+      },
+    });
+    return !!assertion;
+  } catch {
+    return false;
+  }
+}

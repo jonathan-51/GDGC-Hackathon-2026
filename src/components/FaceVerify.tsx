@@ -6,7 +6,7 @@ import {
   MATCH_THRESHOLD,
   type StoredPassport,
 } from '../lib/biometric';
-import { registerPlatformBiometric } from '../lib/webauthn';
+import { authenticatePlatformBiometric } from '../lib/webauthn';
 
 // Re-verify that the human holding the device is the same one stored in the
 // local passport. For face passports we re-compute an embedding and compare
@@ -86,19 +86,18 @@ export default function FaceVerify({ passport, onVerified, onCancel, label }: Pr
   }
 
   async function verifyPlatform() {
+    if (!passport.credentialId) {
+      setError('No credential ID found. Please re-register your device biometric.');
+      return;
+    }
     setStatus('matching');
     setError(null);
     try {
-      const res = await registerPlatformBiometric(passport.handle);
-      if (!res) {
-        setError('Cancelled.');
-        setStatus('idle');
-        return;
-      }
-      if (res.hash === passport.hash) {
+      const ok = await authenticatePlatformBiometric(passport.credentialId);
+      if (ok) {
         onVerified({ distance: 0 });
       } else {
-        setError('Device biometric did not match the registered credential.');
+        setError('Device biometric did not match.');
         setStatus('idle');
       }
     } catch (e) {
