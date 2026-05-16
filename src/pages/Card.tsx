@@ -271,7 +271,6 @@ function PhotoModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<'choose' | 'camera' | 'saving'>('choose');
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -300,14 +299,6 @@ function PhotoModal({
     if (!videoRef.current) return;
     const photo = captureVideoFrame(videoRef.current, 480, 0.85);
     if (photo) { stopCamera(); setPreview(photo); setMode('choose'); }
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { setPreview(ev.target?.result as string); };
-    reader.readAsDataURL(file);
   }
 
   async function save() {
@@ -343,7 +334,7 @@ function PhotoModal({
           <h3 className="text-xl font-mono font-bold text-cyan-electric">Add your photo</h3>
           <p className="text-slate-400 text-sm mt-1">
             {isRequired
-              ? 'A photo is required on your card. Take one or upload from your library.'
+              ? 'A photo is required on your card. Take one using your camera.'
               : 'Update your profile photo.'}
           </p>
         </div>
@@ -382,16 +373,6 @@ function PhotoModal({
                 </svg>
                 Take a photo
               </button>
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-sm hover:bg-cyan-electric/10 transition"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Upload from library
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
             {error && <div className="text-red-300 text-xs font-mono text-center">{error}</div>}
             <div className="flex gap-3 pt-1">
