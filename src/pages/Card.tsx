@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
@@ -11,17 +11,19 @@ import {
   updateProfilePhoto,
   uploadCredentialPhoto,
 } from '../lib/db';
-import { captureVideoFrame } from '../lib/biometric';
+import { captureVideoFrame, clearPassport } from '../lib/biometric';
 import InterviewVideo from '../components/InterviewVideo';
 import type { Credential, CredentialPhoto, SkillReviewWithReviewer, SkillTest } from '../lib/types';
 
 export default function Card() {
   const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
+  const navigate = useNavigate();
   const [qr, setQr] = useState<string | null>(null);
   const [tests, setTests] = useState<SkillTest[]>([]);
   const [reviewsByTest, setReviewsByTest] = useState<Record<string, SkillReviewWithReviewer[]>>({});
   const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   useEffect(() => {
     if (!passport) return;
@@ -184,6 +186,31 @@ export default function Card() {
         </div>
       </motion.div>
 
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-3 items-center justify-center">
+        {qr && (
+          <a
+            href={qr}
+            download={`illume-${profile.handle}.png`}
+            className="px-5 py-2 rounded-full bg-[#C7A97A] text-white text-sm font-semibold hover:bg-[#E6B347] transition-all"
+          >
+            Download QR
+          </a>
+        )}
+        <button
+          onClick={() => setShowQrModal(true)}
+          className="px-5 py-2 rounded-full border border-[#E6B347]/40 text-[#F2DDA4] text-sm font-mono hover:bg-[#E6B347]/10 transition"
+        >
+          View full card
+        </button>
+        <button
+          onClick={() => { clearPassport(); navigate('/register'); }}
+          className="px-5 py-2 rounded-full border border-red-500/40 text-red-300 text-sm font-mono hover:bg-red-500/10 transition ml-auto"
+        >
+          Re-register
+        </button>
+      </div>
+
       <Section title="Vouches">
         {vouches.length === 0 ? (
           <Empty>
@@ -272,6 +299,35 @@ export default function Card() {
             onClose={() => setShowPhotoModal(false)}
             isRequired={!profile.photo}
           />
+        )}
+        {showQrModal && qr && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowQrModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 16 }}
+              className="bg-navy-deep border border-[#E6B347]/30 rounded-2xl p-10 flex flex-col items-center gap-6 shadow-glow max-w-lg w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img src={qr} alt="Your Illume QR" className="w-96 h-96 rounded-lg" />
+              <div className="text-center space-y-1">
+                <div className="text-2xl font-mono text-[#F2DDA4]">@{profile.handle}</div>
+                <div className="text-xs text-slate-500 font-mono">{passport?.hash.slice(0, 16)}…</div>
+              </div>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="px-5 py-2 rounded-full border border-[#E6B347]/40 text-[#F2DDA4] text-sm font-mono hover:bg-[#E6B347]/10 transition"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
