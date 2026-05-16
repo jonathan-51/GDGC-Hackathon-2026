@@ -22,6 +22,7 @@ export default function CoSign() {
   const [authOptions, setAuthOptions] = useState<PublicKeyCredentialRequestOptionsJSON | null>(null);
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [authError, setAuthError] = useState('');
+  const [username, setUsername] = useState('');
   const joinedRef = useRef(false);
 
   // Socket: listen for auth:success broadcast to this session's room
@@ -41,12 +42,13 @@ export default function CoSign() {
     setAuthError('');
     joinedRef.current = false;
 
-    const { options, sessionId: sid } = await apiGenerateAuthenticationOptions();
+    // Pass username so backend populates allowCredentials — browser will
+    // only offer the matching registered passkey, not all passkeys on device.
+    const { options, sessionId: sid } = await apiGenerateAuthenticationOptions(username.trim() || undefined);
     setSessionId(sid);
     setAuthOptions(options);
     setPhase('generated');
 
-    // Join the socket room so Device A receives the auth:success event
     socket.emit('join:session', sid);
     joinedRef.current = true;
   }
@@ -89,6 +91,8 @@ export default function CoSign() {
           qrUrl={qrUrl}
           sessionId={sessionId}
           result={result}
+          username={username}
+          onUsernameChange={setUsername}
           onGenerate={generateChallenge}
         />
         <AuthenticatorPanel
@@ -148,12 +152,16 @@ function VerifierPanel({
   qrUrl,
   sessionId,
   result,
+  username,
+  onUsernameChange,
   onGenerate,
 }: {
   phase: Phase;
   qrUrl: string;
   sessionId: string;
   result: VerifyResult | null;
+  username: string;
+  onUsernameChange: (v: string) => void;
   onGenerate: () => void;
 }) {
   return (
@@ -179,12 +187,17 @@ function VerifierPanel({
             <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-cyan-electric/20 flex items-center justify-center text-cyan-electric/30">
               <QrIcon className="w-10 h-10" />
             </div>
-            <p className="text-slate-400 text-sm text-center font-mono">
-              Generate a one-time challenge QR code<br />for the user to scan.
-            </p>
+            <input
+              value={username}
+              onChange={(e) => onUsernameChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onGenerate()}
+              placeholder="Enter your registered handle…"
+              className="w-full bg-navy-deep border border-cyan-electric/20 rounded-xl px-4 py-2.5 text-white font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-electric/60 transition-colors"
+            />
             <button
               onClick={onGenerate}
-              className="px-6 py-3 rounded-xl bg-cyan-electric text-navy-deep font-semibold font-mono hover:shadow-glow transition-all"
+              disabled={!username.trim()}
+              className="px-6 py-3 rounded-xl bg-cyan-electric text-navy-deep font-semibold font-mono hover:shadow-glow transition-all disabled:opacity-40"
             >
               Generate QR Challenge
             </button>
