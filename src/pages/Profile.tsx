@@ -8,10 +8,15 @@ import {
   listTestsForCandidate,
   listVouchesFor,
 } from '../lib/db';
+import { useUser } from '../hooks/useUser';
 import type { Credential, Profile, SkillTest, VouchWithVoucher } from '../lib/types';
 
 export default function PublicProfile() {
   const { handle = '' } = useParams<{ handle: string }>();
+  const { credentials: viewerCredentials } = useUser();
+  const viewerSkills = viewerCredentials
+    .filter((c) => !c.revoked)
+    .map((c) => c.skill.toLowerCase());
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -185,28 +190,48 @@ export default function PublicProfile() {
       {interviews.length > 0 && (
         <Section title="Interview recordings">
           <div className="space-y-4">
-            {interviews.map((t) => (
+            {interviews.map((t) => {
+              const canViewTranscript = viewerSkills.includes(t.skill.toLowerCase());
+              return (
               <div key={t.id} className="rounded-xl border border-cyan-electric/15 bg-navy-deep/60 overflow-hidden">
-                <video
-                  src={t.video_url!}
-                  controls
-                  className="w-full bg-black"
-                />
-                <div className="px-4 py-3 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-mono text-sm text-cyan-electric">{t.skill}</div>
-                    <div className="text-xs text-slate-500 font-mono mt-0.5">
-                      {new Date(t.created_at).toLocaleDateString()} ·{' '}
-                      <span className={
-                        t.status === 'approved' ? 'text-cyan-electric' :
-                        t.status === 'rejected' ? 'text-red-300' : 'text-amber-200'
-                      }>{t.status}</span>
-                      {t.ai_score !== null && <> · AI {t.ai_score}/100</>}
+                <video src={t.video_url!} controls className="w-full bg-black" />
+                <div className="px-4 py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-mono text-sm text-cyan-electric">{t.skill}</div>
+                      <div className="text-xs text-slate-500 font-mono mt-0.5">
+                        {new Date(t.created_at).toLocaleDateString()} ·{' '}
+                        <span className={
+                          t.status === 'approved' ? 'text-cyan-electric' :
+                          t.status === 'rejected' ? 'text-red-300' : 'text-amber-200'
+                        }>{t.status}</span>
+                        {t.ai_score !== null && <> · AI {t.ai_score}/100</>}
+                      </div>
                     </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1 flex items-center gap-2">
+                      Spoken transcript
+                      {!canViewTranscript && (
+                        <span className="px-1.5 py-0.5 rounded border border-slate-600/40 text-slate-500 text-[9px]">
+                          requires {t.skill} credential
+                        </span>
+                      )}
+                    </div>
+                    {canViewTranscript ? (
+                      <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
+                        {t.answer}
+                      </div>
+                    ) : (
+                      <div className="font-mono text-sm text-slate-600 bg-black/30 rounded px-3 py-2 border border-white/5 select-none blur-sm">
+                        {t.answer}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </Section>
       )}

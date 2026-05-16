@@ -6,8 +6,7 @@ export const geminiEnabled = !!apiKey;
 
 const gemini = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-// gemini-1.5-flash was retired from v1beta. Use a current model.
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-2.0-flash';
 
 export async function generateSkillScenario(skill: string): Promise<string> {
   if (!gemini) return fallbackScenario(skill);
@@ -96,7 +95,7 @@ Verdict rules:
     return { score, verdict, rationale };
   } catch (e) {
     console.warn('Gemini grading failed, falling back', e);
-    return fallbackGrade(answer);
+    return fallbackGrade(answer, 'api error');
   }
 }
 
@@ -105,7 +104,7 @@ function clampScore(n: unknown): number {
   return Math.max(0, Math.min(100, Math.round(x)));
 }
 
-function fallbackGrade(answer: string): AiGrade {
+function fallbackGrade(answer: string, reason = 'no key'): AiGrade {
   const len = answer.trim().length;
   const score = Math.min(100, Math.round(len / 4));
   const verdict: AiGrade['verdict'] =
@@ -113,7 +112,9 @@ function fallbackGrade(answer: string): AiGrade {
   return {
     score,
     verdict,
-    rationale: 'Gemini key not set — grading by answer length as a stub. Set VITE_GEMINI_API_KEY for real grading.',
+    rationale: reason === 'no key'
+      ? 'Gemini key not set — grading by answer length. Set VITE_GEMINI_API_KEY for real grading.'
+      : `Gemini API call failed — grading by answer length. Check browser console for details.`,
   };
 }
 

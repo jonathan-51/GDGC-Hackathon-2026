@@ -230,29 +230,7 @@ export default function Card() {
       {pendingTests.length > 0 && (
         <Section title="Pending review">
           <ul className="space-y-2">
-            {pendingTests.map((t) => (
-              <li
-                key={t.id}
-                className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 space-y-1"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-mono text-amber-200">{t.skill}</div>
-                  {t.ai_verdict && (
-                    <div className="text-xs font-mono text-slate-300">
-                      AI: <span className={
-                        t.ai_verdict === 'approve' ? 'text-cyan-electric'
-                        : t.ai_verdict === 'reject' ? 'text-red-300'
-                        : 'text-amber-200'
-                      }>{t.ai_verdict}</span>
-                      {t.ai_score !== null && <> · {t.ai_score}/100</>}
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs text-slate-400">
-                  Submitted {new Date(t.created_at).toLocaleString()} · awaiting peers
-                </div>
-              </li>
-            ))}
+            {pendingTests.map((t) => <SubmissionCard key={t.id} test={t} />)}
           </ul>
         </Section>
       )}
@@ -464,5 +442,69 @@ function Empty({ children }: { children: React.ReactNode }) {
     <div className="rounded-lg border border-cyan-electric/10 bg-navy-deep/40 px-4 py-6 text-center text-slate-400 text-sm">
       {children}
     </div>
+  );
+}
+
+function SubmissionCard({ test: t }: { test: SkillTest }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <li className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full px-4 py-3 text-left flex items-center justify-between gap-2"
+      >
+        <div className="space-y-0.5">
+          <div className="font-mono text-amber-200">{t.skill}</div>
+          <div className="text-xs text-slate-400">
+            Submitted {new Date(t.created_at).toLocaleString()} · awaiting peers
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {t.ai_verdict && (
+            <div className="text-xs font-mono text-slate-300">
+              AI: <span className={
+                t.ai_verdict === 'approve' ? 'text-cyan-electric'
+                : t.ai_verdict === 'reject' ? 'text-red-300'
+                : 'text-amber-200'
+              }>{t.ai_verdict}</span>
+              {t.ai_score !== null && <> · {t.ai_score}/100</>}
+            </div>
+          )}
+          <svg
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          >
+            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-amber-500/20 px-4 py-4 space-y-4">
+          {t.video_url && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Recording</div>
+              <video src={t.video_url} controls className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
+            </div>
+          )}
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Spoken transcript</div>
+            <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
+              {t.answer}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Question</div>
+            <div className="text-sm text-slate-400 leading-relaxed">{t.question}</div>
+          </div>
+          {t.ai_rationale && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">AI feedback</div>
+              <div className="text-sm text-slate-300 leading-relaxed">{t.ai_rationale}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

@@ -26,18 +26,14 @@ declare global {
   }
 }
 
-async function uploadInterviewVideo(blob: Blob, testId: string): Promise<string | null> {
-  try {
-    const path = `${testId}.webm`;
-    const { error } = await supabase.storage
-      .from('interview-videos')
-      .upload(path, blob, { contentType: 'video/webm', upsert: true });
-    if (error) return null;
-    const { data } = supabase.storage.from('interview-videos').getPublicUrl(path);
-    return data.publicUrl;
-  } catch {
-    return null;
-  }
+async function uploadInterviewVideo(blob: Blob, testId: string): Promise<{ url: string | null; error: string | null }> {
+  const path = `${testId}.webm`;
+  const { error: uploadError } = await supabase.storage
+    .from('interview-videos')
+    .upload(path, blob, { contentType: 'video/webm', upsert: true });
+  if (uploadError) return { url: null, error: uploadError.message };
+  const { data } = supabase.storage.from('interview-videos').getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
 }
 
 export default function SkillTest() {
@@ -64,6 +60,15 @@ export default function SkillTest() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     recognitionRef.current?.stop();
   }, []);
+
+  // Re-attach stream whenever the video element is mounted/remounted (stage change)
+  useEffect(() => {
+    if (!videoRef.current || !streamRef.current) return;
+    if (videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  });
 
   // Countdown timer
   useEffect(() => {
@@ -210,11 +215,13 @@ export default function SkillTest() {
 
       // Upload video after test is created (so we have the ID)
       if (videoBlob) {
-        const url = await uploadInterviewVideo(videoBlob, test.id);
+        const { url, error: uploadErr } = await uploadInterviewVideo(videoBlob, test.id);
         if (url) {
           setVideoUrl(url);
-          // Update the test row with the video URL
           await supabase.from('skill_tests').update({ video_url: url }).eq('id', test.id);
+        } else if (uploadErr) {
+          console.error('[SkillTest] video upload failed:', uploadErr);
+          setError(`Video upload failed: ${uploadErr}`);
         }
       }
 

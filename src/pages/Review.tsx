@@ -184,11 +184,19 @@ export default function Review() {
                 </div>
                 <div className="text-slate-300 text-sm">{t.question}</div>
               </div>
+              {t.video_url && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">
+                    Interview recording
+                  </div>
+                  <video src={t.video_url} controls className="w-full rounded-lg bg-black border border-cyan-electric/15 max-h-64" />
+                </div>
+              )}
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">
-                  Answer
+                  Spoken transcript
                 </div>
-                <div className="text-white text-sm whitespace-pre-wrap">
+                <div className="text-white text-sm whitespace-pre-wrap font-mono bg-black/30 rounded-lg px-3 py-2 border border-white/5">
                   {t.answer}
                 </div>
               </div>
