@@ -12,10 +12,9 @@ import {
   savePassport,
   type StoredPassport,
 } from '../lib/biometric';
-import {
-  platformAuthenticatorAvailable,
-  registerPlatformBiometric,
-} from '../lib/webauthn';
+import { platformAuthenticatorAvailable } from '../lib/webauthn';
+import { startRegistration } from '@simplewebauthn/browser';
+import { apiGenerateRegistrationOptions, apiVerifyRegistration } from '../lib/api';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
 
@@ -136,13 +135,14 @@ export default function Register() {
     setError(null);
     setStage('webauthn');
     try {
-      const result = await registerPlatformBiometric(handle.trim());
-      if (!result) {
-        setError('Device biometric registration was cancelled.');
-        setStage('idle');
-        return;
-      }
-      finalize({ hash: result.hash, embedding: [], source: 'platform' });
+      // Go through our backend so the credential lands in SQLite and
+      // can be verified later by the Silicon Witness handshake.
+      const { options, userId } = await apiGenerateRegistrationOptions(handle.trim());
+      const regResponse = await startRegistration({ optionsJSON: options });
+      const { aaguid } = await apiVerifyRegistration(userId, regResponse);
+      // Use the aaguid (or credential id) as the passport hash
+      const hash = aaguid ?? regResponse.id;
+      finalize({ hash, embedding: [], source: 'platform' });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Device biometric failed.');
