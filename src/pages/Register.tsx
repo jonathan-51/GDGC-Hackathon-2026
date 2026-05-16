@@ -12,10 +12,7 @@ import {
   savePassport,
   type StoredPassport,
 } from '../lib/biometric';
-import {
-  platformAuthenticatorAvailable,
-  registerPlatformBiometric,
-} from '../lib/webauthn';
+import { platformAuthenticatorAvailable, registerPlatformBiometric } from '../lib/webauthn';
 import { supabase } from '../lib/supabase';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
@@ -95,9 +92,7 @@ export default function Register() {
     setStage('syncing');
     const trimmed = handle.trim();
     try {
-      // Upsert by handle. Same handle → overwrite face_hash + embedding on
-      // the existing row. New handle → fresh insert.
-      const { data: profile, error } = await supabase
+      const { data: profile, error: dbError } = await supabase
         .from('profiles')
         .upsert(
           {
@@ -110,7 +105,7 @@ export default function Register() {
         )
         .select()
         .single();
-      if (error) throw error;
+      if (dbError) throw dbError;
 
       const newPassport: StoredPassport = {
         profileId: profile.id,
