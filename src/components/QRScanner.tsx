@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import jsQR from 'jsqr';
 
 interface Props {
   onResult: (text: string) => void;
@@ -7,111 +7,119 @@ interface Props {
 }
 
 export default function QRScanner({ onResult, onError }: Props) {
-  const elRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number>(0);
+  const handledRef = useRef(false);
   const [status, setStatus] = useState<'starting' | 'scanning' | 'matched' | 'error'>('starting');
 
   useEffect(() => {
-    if (!elRef.current) return;
-    const id = 'qr-scanner-region';
-    elRef.current.id = id;
-
-    const scanner = new Html5Qrcode(id, { verbose: false });
     let cancelled = false;
-    let started = false;
-    let handled = false;
-    let startPromise: Promise<void> | null = null;
 
-    const onScan = (decodedText: string) => {
-      if (handled || cancelled) return;
-      handled = true;
-      console.log('[QRScanner] decoded', decodedText);
-      setStatus('matched');
-      // Defer to escape the html5-qrcode worker callback context.
-      setTimeout(() => onResult(decodedText), 0);
-    };
-
-    const tryStart = async () => {
-      // html5-qrcode requires `facingMode` to be a string or `{ exact: ... }`,
-      // not `{ ideal: ... }`. We try the rear camera first, then any user-facing
-      // camera, then fall back to enumerating devices and picking the first one
-      // (handles laptops where neither facingMode hint matches).
-      const attempt = async (cameraIdOrConfig: string | MediaTrackConstraints) => {
-        if (cancelled) return false;
-        try {
-          await scanner.start(
-            cameraIdOrConfig,
-            {
-              fps: 20,
-              qrbox: (w, h) => {
-                const side = Math.floor(Math.min(w, h) * 0.85);
-                return { width: side, height: side };
-              },
-            },
-            onScan,
-            () => undefined,
-          );
-          started = true;
-          if (cancelled) {
-            try { await scanner.stop(); } catch { /* ignore */ }
-            return true;
-          }
-          setStatus('scanning');
-          return true;
-        } catch (e) {
-          console.warn('[QRScanner] start failed for', cameraIdOrConfig, e);
-          return false;
-        }
-      };
-
-      // 1. Try rear camera, 2. any user-facing camera, 3. enumerate and grab
-      // whatever the OS reports first (laptops often expose no facingMode).
-      if (await attempt({ facingMode: 'environment' })) return;
-      if (await attempt({ facingMode: 'user' })) return;
+    async function start() {
       try {
-        const cams = await Html5Qrcode.getCameras();
-        console.log('[QRScanner] available cameras', cams);
-        for (const c of cams) {
-          if (await attempt(c.id)) return;
-          if (cancelled) return;
+        // Prefer rear camera; fall back to any available camera.
+        let stream: MediaStream | null = null;
+        const attempts: MediaStreamConstraints[] = [
+          { video: { facingMode: { ideal: 'environment' } }, audio: false },
+          { video: true, audio: false },
+        ];
+        for (const constraints of attempts) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            break;
+          } catch { /* try next */ }
         }
-      } catch (e) {
-        console.warn('[QRScanner] getCameras failed', e);
-      }
-      if (!cancelled) {
-        setStatus('error');
-        onError?.('No usable camera found.');
-      }
-    };
+        if (!stream) throw new Error('No camera found.');
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
 
-    startPromise = tryStart();
+        streamRef.current = stream;
+        const video = videoRef.current!;
+        video.srcObject = stream;
+        await video.play();
+        if (cancelled) return;
+        setStatus('scanning');
+        requestAnimationFrame(tick);
+      } catch (e) {
+        if (!cancelled) {
+          setStatus('error');
+          onError?.(e instanceof Error ? e.message : 'Camera unavailable.');
+        }
+      }
+    }
+
+    function tick() {
+      if (cancelled || handledRef.current) return;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (w === 0 || h === 0) { rafRef.current = requestAnimationFrame(tick); return; }
+
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(video, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
+
+      const result = jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      if (result?.data) {
+        handledRef.current = true;
+        setStatus('matched');
+        setTimeout(() => onResult(result.data), 0);
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    }
+
+    start();
 
     return () => {
       cancelled = true;
-      // Wait for the start to finish (or fail) before tearing down — html5-qrcode
-      // throws "Cannot transition to a new state, already under transition" if
-      // stop() races with start().
-      (async () => {
-        try { await startPromise; } catch { /* ignore */ }
-        if (started) {
-          try { await scanner.stop(); } catch { /* ignore */ }
-        }
-        try { scanner.clear(); } catch { /* ignore */ }
-      })();
+      cancelAnimationFrame(rafRef.current);
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="space-y-2">
-      <div className="rounded-2xl overflow-hidden border border-cyan-electric/30 bg-black aspect-square max-w-sm mx-auto relative w-full [&_video]:absolute [&_video]:inset-0 [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
-        <div ref={elRef} className="w-full h-full" />
+      <div className="rounded-2xl overflow-hidden border border-cyan-electric/30 bg-black aspect-square max-w-sm mx-auto relative w-full">
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+
+        {/* Corner-bracket viewfinder */}
+        {status === 'scanning' && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-2/3 h-2/3 relative">
+              <span className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-cyan-electric" />
+              <span className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-cyan-electric" />
+              <span className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-cyan-electric" />
+              <span className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-cyan-electric" />
+            </div>
+          </div>
+        )}
+
         {status === 'starting' && (
           <div className="absolute inset-0 flex items-center justify-center text-cyan-electric font-mono text-sm animate-pulse pointer-events-none">
             Starting camera…
           </div>
         )}
         {status === 'matched' && (
-          <div className="absolute inset-0 bg-cyan-electric/10 flex items-center justify-center text-cyan-electric font-mono pointer-events-none">
+          <div className="absolute inset-0 bg-cyan-electric/10 flex items-center justify-center text-cyan-electric font-mono text-lg pointer-events-none">
             ✓ Scanned
           </div>
         )}

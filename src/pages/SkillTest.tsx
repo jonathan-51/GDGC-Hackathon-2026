@@ -28,10 +28,11 @@ declare global {
 }
 
 async function uploadInterviewVideo(blob: Blob, testId: string): Promise<{ url: string | null; error: string | null }> {
-  const path = `${testId}.webm`;
+  const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+  const path = `${testId}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from('interview-videos')
-    .upload(path, blob, { contentType: 'video/webm', upsert: true });
+    .upload(path, blob, { contentType: blob.type || 'video/webm', upsert: true });
   if (uploadError) return { url: null, error: uploadError.message };
   const { data } = supabase.storage.from('interview-videos').getPublicUrl(path);
   return { url: data.publicUrl, error: null };
@@ -193,12 +194,15 @@ export default function SkillTest() {
       interimRef.current = '';
       setSecondsLeft(SKILL_TEST_SECONDS);
 
-      // Start recording
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-        ? 'video/webm;codecs=vp8,opus'
-        : 'video/webm';
+      // Start recording — pick best supported codec with Safari mp4 fallback
+      const mimeType = [
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+      ].find(t => MediaRecorder.isTypeSupported(t)) ?? '';
       chunksRef.current = [];
-      const recorder = new MediaRecorder(streamRef.current!, { mimeType });
+      const recorder = new MediaRecorder(streamRef.current!, mimeType ? { mimeType } : {});
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.start(1000);
       recorderRef.current = recorder;
@@ -271,7 +275,7 @@ export default function SkillTest() {
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
       await new Promise<void>((resolve) => {
         recorderRef.current!.onstop = () => {
-          videoBlob = new Blob(chunksRef.current, { type: 'video/webm' });
+          videoBlob = new Blob(chunksRef.current, { type: recorderRef.current!.mimeType || 'video/webm' });
           resolve();
         };
         recorderRef.current!.stop();
