@@ -18,6 +18,8 @@ dist-ssr
 # Server
 server/node_modules
 server/silicon-witness.db
+server/silicon-witness.db-shm
+server/silicon-witness.db-wal
 server/.env
 
 # Editor directories and files

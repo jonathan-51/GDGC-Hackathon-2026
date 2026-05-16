@@ -5,7 +5,8 @@ const NAV_LINKS = [
   { label: 'Generate Card', to: '/register' },
   { label: 'Verify Peer', to: '/cosign' },
   { label: 'Live Skill Assessment', to: '/skill-test' },
-  { label: 'FAQ', to: '/#faq' },
+  { label: 'Review Queue', to: '/review' },
+  { label: 'My Card', to: '/card' },
 ];
 
 export default function Layout() {
