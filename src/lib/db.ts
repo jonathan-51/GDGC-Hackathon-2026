@@ -127,6 +127,20 @@ export async function listVouchesFor(vouchee_id: string): Promise<VouchWithVouch
   return (data ?? []) as VouchWithVoucher[];
 }
 
+export interface VouchWithVouchee extends Vouch {
+  vouchee: Pick<Profile, 'id' | 'handle' | 'face_hash'>;
+}
+
+export async function listVouchesByVoucher(voucher_id: string): Promise<VouchWithVouchee[]> {
+  const { data, error } = await supabase
+    .from('vouches')
+    .select('*, vouchee:vouchee_id (id, handle, face_hash)')
+    .eq('voucher_id', voucher_id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as VouchWithVouchee[];
+}
+
 export async function createVouch(input: {
   voucher_id: string;
   vouchee_id: string;

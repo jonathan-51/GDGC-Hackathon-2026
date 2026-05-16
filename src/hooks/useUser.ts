@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadPassport, savePassport, type StoredPassport } from '../lib/biometric';
-import { getProfile, getProfileByUserId, listCredentialsFor, listVouchesFor } from '../lib/db';
+import { getProfileByUserId, listCredentialsFor, listVouchesFor } from '../lib/db';
 import type { Credential, Profile, VouchWithVoucher } from '../lib/types';
 import { useAuth } from './useAuth';
 
