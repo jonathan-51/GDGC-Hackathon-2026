@@ -63,7 +63,7 @@ export async function registerPlatformBiometric(handle: string): Promise<{
   const cred = (await navigator.credentials.create({
     publicKey: {
       challenge,
-      rp: { name: 'Vouch' },
+      rp: { name: 'Illume' },
       user: {
         id: userId,
         name: handle,

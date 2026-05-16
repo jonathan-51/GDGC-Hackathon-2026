@@ -30,7 +30,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white shrink-0">
             <VouchIcon className="w-6 h-6 text-cyan-electric" />
-            <span>Vouch</span>
+            <span>Illume</span>
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center justify-center gap-1 text-sm text-slate-400">

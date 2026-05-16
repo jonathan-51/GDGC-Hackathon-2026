@@ -63,7 +63,7 @@ export default function ScanProfile() {
   function handleScan(text: string) {
     const parsed = parseQr(text);
     if (!parsed) {
-      setError(`That QR is not a Vouch card. Decoded: ${text.slice(0, 80)}`);
+      setError(`That QR is not an Illume card. Decoded: ${text.slice(0, 80)}`);
       return;
     }
     setSelectedHandle(parsed.handle);
@@ -83,7 +83,7 @@ export default function ScanProfile() {
       <header className="space-y-2">
         <h2 className="text-4xl font-mono font-bold text-cyan-electric">Find a Profile</h2>
         <p className="text-slate-400">
-          Scan a Vouch QR code or search by handle to view someone's profile.
+          Scan an Illume QR code or search by handle to view someone's profile.
         </p>
       </header>
 

@@ -118,7 +118,7 @@ export default function QRScanner({ onResult, onError }: Props) {
       </div>
       <p className="text-center text-xs font-mono text-slate-500">
         {status === 'starting' && 'requesting camera…'}
-        {status === 'scanning' && 'point at a Vouch QR'}
+        {status === 'scanning' && 'point at an Illume QR'}
         {status === 'matched' && 'processing…'}
         {status === 'error' && 'camera unavailable'}
       </p>

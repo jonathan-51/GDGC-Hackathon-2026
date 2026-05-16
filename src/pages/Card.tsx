@@ -129,7 +129,7 @@ export default function Card() {
       >
         <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center">
           {qr ? (
-            <img src={qr} alt="Your Vouch QR" className="w-48 md:w-64 aspect-square object-contain rounded-lg shrink-0" />
+            <img src={qr} alt="Your Illume QR" className="w-48 md:w-64 aspect-square object-contain rounded-lg shrink-0" />
           ) : (
             <div className="w-48 md:w-64 aspect-square bg-black/40 rounded-lg" />
           )}

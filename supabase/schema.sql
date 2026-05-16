@@ -1,4 +1,4 @@
--- Vouch schema. Paste this into the Supabase SQL Editor.
+-- Illume schema. Paste this into the Supabase SQL Editor.
 -- RLS policies are permissive for the hackathon; tighten before production.
 
 create extension if not exists "pgcrypto";

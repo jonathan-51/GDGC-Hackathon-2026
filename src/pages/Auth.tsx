@@ -92,7 +92,7 @@ export default function Auth() {
         <p className="text-slate-400 text-sm">
           {mode === 'signup'
             ? 'Create an account to register a card and vouch for others.'
-            : 'Sign in to your Vouch account.'}
+            : 'Sign in to your Illume account.'}
         </p>
       </header>
 

@@ -104,7 +104,7 @@ export default function MapNearby() {
       <header className="space-y-2">
         <h2 className="text-4xl font-mono font-bold text-cyan-electric">Nearby</h2>
         <p className="text-slate-400">
-          See who's around you on Vouch. Tap any marker to open their profile.
+          See who's around you on Illume. Tap any marker to open their profile.
         </p>
       </header>
 

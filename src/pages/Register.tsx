@@ -390,7 +390,7 @@ function PassportView({
     <div className="max-w-2xl mx-auto space-y-8">
       <header className="space-y-2 text-center">
         <h2 className="text-4xl font-mono font-bold text-cyan-electric">
-          Your Vouch Card
+          Your Illume Card
         </h2>
         <p className="text-slate-400">
           Print it. Tattoo it. Stick it on your jacket. This QR is your identity.
@@ -411,7 +411,7 @@ function PassportView({
             />
           )}
           {qrDataUrl ? (
-            <img src={qrDataUrl} alt="Your Vouch QR" className="w-72 h-72 rounded-lg" />
+            <img src={qrDataUrl} alt="Your Illume QR" className="w-72 h-72 rounded-lg" />
           ) : (
             <div className="w-72 h-72 flex items-center justify-center text-slate-500 font-mono">
               Rendering…

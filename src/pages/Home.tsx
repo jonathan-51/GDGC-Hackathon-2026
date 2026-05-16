@@ -72,7 +72,7 @@ export default function Home() {
           transition={{ duration: 0.7 }}
         >
           <h1 className="text-5xl md:text-6xl font-mono font-bold leading-tight">
-            <span className="text-cyan-electric">VOUCH:</span>{' '}
+            <span className="text-cyan-electric">ILLUME:</span>{' '}
             <span className="text-white">Reclaiming<br />trust in a world<br />without records</span>
           </h1>
           <p className="mt-5 text-slate-400 text-sm max-w-md leading-relaxed">
@@ -122,10 +122,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE VOUCH CREDENTIAL */}
+      {/* THE ILLUME CREDENTIAL */}
       <section className="max-w-7xl mx-auto px-6 pb-24 relative">
         <h2 className="text-3xl md:text-4xl font-mono font-bold text-center text-white mb-12">
-          The Vouch Credential
+          The Illume Credential
         </h2>
         <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto items-center">
           <PhoneMockup />
@@ -147,7 +147,7 @@ export default function Home() {
 }
 
 // ---------------------------------------------------------------------------
-// Background: large VOUCH watermark + cross decorators + glow
+// Background: large ILLUME watermark + cross decorators + glow
 // ---------------------------------------------------------------------------
 function HeroBackground() {
   return (
@@ -156,7 +156,7 @@ function HeroBackground() {
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-700/10 rounded-full blur-[120px]" />
       <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-blue-500/8 rounded-full blur-[80px]" />
 
-      {/* VOUCH watermark */}
+      {/* ILLUME watermark */}
       <div
         className="absolute top-0 left-0 w-full select-none"
         style={{ pointerEvents: 'none' }}
@@ -173,7 +173,7 @@ function HeroBackground() {
             strokeWidth="1"
             letterSpacing="-10"
           >
-            VOUCH
+            ILLUME
           </text>
         </svg>
       </div>

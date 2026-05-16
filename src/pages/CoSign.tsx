@@ -87,7 +87,7 @@ export default function CoSign() {
     const parsed = parseQr(text);
     console.log('[CoSign] parsed', parsed);
     if (!parsed) {
-      setError(`That QR is not a Vouch card. Decoded: ${text.slice(0, 80)}`);
+      setError(`That QR is not an Illume card. Decoded: ${text.slice(0, 80)}`);
       setStage('error');
       return;
     }
@@ -149,7 +149,7 @@ export default function CoSign() {
       <header className="space-y-2">
         <h2 className="text-4xl font-mono font-bold text-cyan-electric">Verify Peer</h2>
         <p className="text-slate-400">
-          Scan a peer's Vouch card, then sign with your own biometric. Each
+          Scan a peer's Illume card, then sign with your own biometric. Each
           co-sign is recorded against your own card — your reputation is on the line.
         </p>
       </header>
