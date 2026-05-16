@@ -165,18 +165,14 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-white/5 bg-navy-deep/60 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-400">
-          <div className="flex flex-wrap gap-6">
-            <Link to="/#how" className="hover:text-white transition-colors">How it works</Link>
-            <Link to="/skill-test" className="hover:text-white transition-colors">Live Skill Assessment</Link>
-            <Link to="/cosign" className="hover:text-white transition-colors">Verify Peer</Link>
-            <Link to="/scan" className="hover:text-white transition-colors">Scan Profile</Link>
-            <Link to="/map" className="hover:text-white transition-colors">Nearby</Link>
-            <Link to="/review" className="hover:text-white transition-colors">Review Queue</Link>
-            <Link to="/register" className="hover:text-white transition-colors">Register</Link>
+      <footer className="border-t border-white/5 bg-navy-deep/90 backdrop-blur mt-auto">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-center text-sm text-slate-400">
+          <div className="flex flex-wrap justify-center gap-6">
+            <Link to="/skill-test" className="hover:text-[#F2DDA4] transition-colors">Live Skill Assessment</Link>
+            <Link to="/scan" className="hover:text-[#F2DDA4] transition-colors">Scan & Verify</Link>
+            <Link to="/map" className="hover:text-[#F2DDA4] transition-colors">Nearby</Link>
+            <Link to="/review" className="hover:text-[#F2DDA4] transition-colors">Review Queue</Link>
           </div>
-          <Link to="/#contact" className="hover:text-white transition-colors">Contact us</Link>
         </div>
       </footer>
     </div>
