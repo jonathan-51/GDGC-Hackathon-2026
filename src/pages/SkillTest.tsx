@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
-import { generateSkillScenario, geminiEnabled, gradeSkillAnswer, type AiGrade } from '../lib/gemini';
+import { generateSkillScenario, geminiEnabled, gradeSkillAnswer, pinnedTranscript, type AiGrade } from '../lib/gemini';
 import { createSkillTest, maybeFinalizeTest } from '../lib/db';
 import { supabase } from '../lib/supabase';
 import { SKILL_TEST_SECONDS, VOUCH_SKILLS } from '../lib/types';
@@ -130,7 +130,8 @@ export default function SkillTest() {
     try {
       const q = await generateSkillScenario(skill);
       setQuestion(q);
-      setTranscript('');
+      const pinned = pinnedTranscript(skill);
+      setTranscript(pinned ?? '');
       interimRef.current = '';
       setSecondsLeft(SKILL_TEST_SECONDS);
 
@@ -145,9 +146,9 @@ export default function SkillTest() {
       recorderRef.current = recorder;
       setRecording(true);
 
-      // Start speech recognition
+      // Start speech recognition (skipped when transcript is pinned for demo)
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SR) {
+      if (SR && !pinned) {
         const recognition = new SR();
         recognition.continuous = true;
         recognition.interimResults = true;

@@ -52,6 +52,10 @@ export interface SkillReview {
   created_at: string;
 }
 
+export interface SkillReviewWithReviewer extends SkillReview {
+  reviewer: Pick<Profile, 'id' | 'handle'>;
+}
+
 export interface Credential {
   id: string;
   holder_id: string;

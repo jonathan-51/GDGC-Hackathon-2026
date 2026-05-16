@@ -4,6 +4,7 @@ import type {
   CredentialPhoto,
   Profile,
   SkillReview,
+  SkillReviewWithReviewer,
   SkillTest,
   SkillTestStatus,
   SkillTestWithCandidate,
@@ -178,14 +179,15 @@ export async function listTestsForCandidate(candidate_id: string): Promise<Skill
 
 export async function listReviewsForTests(
   test_ids: string[],
-): Promise<SkillReview[]> {
+): Promise<SkillReviewWithReviewer[]> {
   if (test_ids.length === 0) return [];
   const { data, error } = await supabase
     .from('skill_reviews')
-    .select('*')
-    .in('test_id', test_ids);
+    .select('*, reviewer:reviewer_id (id, handle)')
+    .in('test_id', test_ids)
+    .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as SkillReview[];
+  return (data ?? []) as SkillReviewWithReviewer[];
 }
 
 export async function listReviewsForTest(test_id: string): Promise<SkillReview[]> {

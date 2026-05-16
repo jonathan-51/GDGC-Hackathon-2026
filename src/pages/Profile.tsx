@@ -6,6 +6,7 @@ import {
   getProfileByHandle,
   listCredentialPhotos,
   listCredentialsFor,
+  listReviewsForTests,
   listTestsForCandidate,
   listVouchesFor,
 } from '../lib/db';
@@ -14,6 +15,7 @@ import type {
   Credential,
   CredentialPhoto,
   Profile,
+  SkillReviewWithReviewer,
   SkillTest,
   VouchWithVoucher,
 } from '../lib/types';
@@ -28,6 +30,7 @@ export default function PublicProfile() {
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [interviews, setInterviews] = useState<SkillTest[]>([]);
+  const [reviewsByTest, setReviewsByTest] = useState<Record<string, SkillReviewWithReviewer[]>>({});
   const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [lightbox, setLightbox] = useState<CredentialPhoto | null>(null);
   const [qr, setQr] = useState<string | null>(null);
@@ -42,6 +45,7 @@ export default function PublicProfile() {
     setVouches([]);
     setCredentials([]);
     setInterviews([]);
+    setReviewsByTest({});
     setCredentialPhotos([]);
     setQr(null);
 
@@ -68,9 +72,18 @@ export default function PublicProfile() {
         if (cancelled) return;
         setVouches(v);
         setCredentials(c);
-        setInterviews(tests.filter((t) => t.video_url));
+        setInterviews(tests);
         setCredentialPhotos(photos);
         setQr(qrUrl);
+        if (tests.length > 0) {
+          const reviews = await listReviewsForTests(tests.map((t) => t.id));
+          if (cancelled) return;
+          const grouped: Record<string, SkillReviewWithReviewer[]> = {};
+          for (const r of reviews) {
+            (grouped[r.test_id] ??= []).push(r);
+          }
+          setReviewsByTest(grouped);
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -297,13 +310,14 @@ export default function PublicProfile() {
       )}
 
       {interviews.length > 0 && (
-        <Section title="Interview recordings">
+        <Section title="Skill assessments">
           <div className="space-y-4">
             {interviews.map((t) => {
               const canViewTranscript = viewerSkills.includes(t.skill.toLowerCase());
+              const testReviews = reviewsByTest[t.id] ?? [];
               return (
               <div key={t.id} className="rounded-xl border border-cyan-electric/15 bg-navy-deep/60 overflow-hidden">
-                <video src={t.video_url!} controls className="w-full bg-black" />
+                {t.video_url && <video src={t.video_url} controls className="w-full bg-black" />}
                 <div className="px-4 py-3 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -314,7 +328,10 @@ export default function PublicProfile() {
                           t.status === 'approved' ? 'text-cyan-electric' :
                           t.status === 'rejected' ? 'text-red-300' : 'text-amber-200'
                         }>{t.status}</span>
-                        {t.ai_score !== null && <> · AI {t.ai_score}/100</>}
+                        {' · '}
+                        <span className="text-cyan-electric">
+                          AI {t.ai_score ?? '—'}/100
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -337,6 +354,45 @@ export default function PublicProfile() {
                       </div>
                     )}
                   </div>
+                  {testReviews.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
+                        Peer reviews
+                      </div>
+                      <ul className="space-y-1.5">
+                        {testReviews.map((r) => (
+                          <li
+                            key={r.id}
+                            className={`rounded border px-3 py-2 text-xs font-mono ${
+                              r.verdict === 'approve'
+                                ? 'border-cyan-electric/30 bg-cyan-electric/5 text-cyan-electric'
+                                : 'border-red-400/30 bg-red-500/5 text-red-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span>
+                                {r.verdict === 'approve' ? '✓ approved' : '✗ rejected'} by{' '}
+                                <Link
+                                  to={`/p/${r.reviewer.handle}`}
+                                  className="underline hover:opacity-80"
+                                >
+                                  @{r.reviewer.handle}
+                                </Link>
+                              </span>
+                              <span className="opacity-60">
+                                {new Date(r.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {r.notes && (
+                              <div className="mt-1 text-slate-300/90 whitespace-pre-wrap">
+                                "{r.notes}"
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
               );

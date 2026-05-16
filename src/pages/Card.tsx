@@ -6,17 +6,19 @@ import { useUser } from '../hooks/useUser';
 import {
   deleteCredentialPhoto,
   listCredentialPhotos,
+  listReviewsForTests,
   listTestsForCandidate,
   updateProfilePhoto,
   uploadCredentialPhoto,
 } from '../lib/db';
 import { captureVideoFrame } from '../lib/biometric';
-import type { Credential, CredentialPhoto, SkillTest } from '../lib/types';
+import type { Credential, CredentialPhoto, SkillReviewWithReviewer, SkillTest } from '../lib/types';
 
 export default function Card() {
   const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
   const [qr, setQr] = useState<string | null>(null);
   const [tests, setTests] = useState<SkillTest[]>([]);
+  const [reviewsByTest, setReviewsByTest] = useState<Record<string, SkillReviewWithReviewer[]>>({});
   const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
@@ -30,7 +32,25 @@ export default function Card() {
 
   useEffect(() => {
     if (!profile) return;
-    listTestsForCandidate(profile.id).then(setTests).catch(console.error);
+    listTestsForCandidate(profile.id)
+      .then(async (rows) => {
+        setTests(rows);
+        if (rows.length === 0) {
+          setReviewsByTest({});
+          return;
+        }
+        try {
+          const reviews = await listReviewsForTests(rows.map((r) => r.id));
+          const grouped: Record<string, SkillReviewWithReviewer[]> = {};
+          for (const r of reviews) {
+            (grouped[r.test_id] ??= []).push(r);
+          }
+          setReviewsByTest(grouped);
+        } catch (e) {
+          console.warn('failed to load reviews', e);
+        }
+      })
+      .catch(console.error);
     listCredentialPhotos(profile.id).then(setCredentialPhotos).catch(console.error);
   }, [profile]);
 
@@ -219,7 +239,8 @@ export default function Card() {
           <ul className="space-y-3">
             {activeCreds.map((c) => {
               const test = c.test_id ? tests.find((t) => t.id === c.test_id) : undefined;
-              return <CredentialCard key={c.id} credential={c} test={test} />;
+              const reviews = test ? reviewsByTest[test.id] ?? [] : [];
+              return <CredentialCard key={c.id} credential={c} test={test} reviews={reviews} />;
             })}
           </ul>
         )}
@@ -432,9 +453,17 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-function CredentialCard({ credential: c, test }: { credential: Credential; test?: SkillTest }) {
+function CredentialCard({
+  credential: c,
+  test,
+  reviews = [],
+}: {
+  credential: Credential;
+  test?: SkillTest;
+  reviews?: SkillReviewWithReviewer[];
+}) {
   const [expanded, setExpanded] = useState(false);
-  const canExpand = !!(test && (test.video_url || test.question || test.answer));
+  const canExpand = !!(test && (test.video_url || test.question || test.answer || reviews.length > 0));
   return (
     <li className="rounded-lg border border-cyan-electric/30 bg-cyan-electric/5 overflow-hidden">
       <button
@@ -479,6 +508,57 @@ function CredentialCard({ credential: c, test }: { credential: Credential; test?
               <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
                 {test.answer}
               </div>
+            </div>
+          )}
+          {(test.ai_score !== null || test.ai_rationale) && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
+                AI mark
+                {test.ai_score !== null && (
+                  <span className="ml-2 text-cyan-electric normal-case">{test.ai_score}/100</span>
+                )}
+                {test.ai_verdict && (
+                  <span className={`ml-2 ${
+                    test.ai_verdict === 'approve' ? 'text-cyan-electric' :
+                    test.ai_verdict === 'reject' ? 'text-red-300' : 'text-amber-200'
+                  }`}>· {test.ai_verdict}</span>
+                )}
+              </div>
+              {test.ai_rationale && (
+                <div className="text-sm text-slate-300 leading-relaxed">{test.ai_rationale}</div>
+              )}
+            </div>
+          )}
+          {reviews.length > 0 && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
+                Peer reviews
+              </div>
+              <ul className="space-y-1.5">
+                {reviews.map((r) => (
+                  <li
+                    key={r.id}
+                    className={`rounded border px-3 py-2 text-xs font-mono ${
+                      r.verdict === 'approve'
+                        ? 'border-cyan-electric/30 bg-cyan-electric/5 text-cyan-electric'
+                        : 'border-red-400/30 bg-red-500/5 text-red-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span>
+                        {r.verdict === 'approve' ? '✓ approved' : '✗ rejected'} by{' '}
+                        <Link to={`/p/${r.reviewer.handle}`} className="underline hover:opacity-80">
+                          @{r.reviewer.handle}
+                        </Link>
+                      </span>
+                      <span className="opacity-60">{new Date(r.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {r.notes && (
+                      <div className="mt-1 text-slate-300/90 whitespace-pre-wrap">"{r.notes}"</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
