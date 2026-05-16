@@ -3,6 +3,7 @@ export interface Profile {
   handle: string;
   face_hash: string;
   face_embedding: number[];
+  photo: string | null;
   created_at: string;
 }
 

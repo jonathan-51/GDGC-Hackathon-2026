@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
 import { Link } from 'react-router-dom';
 import {
+  captureVideoFrame,
   clearPassport,
   getFaceEmbedding,
   hashEmbedding,
@@ -88,6 +89,7 @@ export default function Register() {
     hash: string;
     embedding: number[];
     source: 'face' | 'platform';
+    photo?: string;
   }) {
     setStage('syncing');
     const trimmed = handle.trim();
@@ -98,6 +100,7 @@ export default function Register() {
       handle: trimmed,
       hash: input.hash,
       embedding: input.embedding,
+      photo: input.photo,
       createdAt: Date.now(),
     };
     savePassport(newPassport);
@@ -116,7 +119,8 @@ export default function Register() {
         return;
       }
       const hash = await hashEmbedding(embedding);
-      finalize({ hash, embedding: Array.from(embedding), source: 'face' });
+      const photo = captureVideoFrame(videoRef.current) ?? undefined;
+      finalize({ hash, embedding: Array.from(embedding), source: 'face', photo });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Capture failed.');
@@ -328,6 +332,13 @@ function PassportView({
         className="rounded-2xl border border-cyan-electric/30 bg-navy-deep p-8 shadow-glow"
       >
         <div className="flex flex-col items-center gap-6">
+          {passport.photo && (
+            <img
+              src={passport.photo}
+              alt="Your captured portrait"
+              className="w-32 h-32 rounded-full object-cover border-2 border-cyan-electric/60 shadow-glow"
+            />
+          )}
           {qrDataUrl ? (
             <img src={qrDataUrl} alt="Your Vouch QR" className="w-72 h-72 rounded-lg" />
           ) : (

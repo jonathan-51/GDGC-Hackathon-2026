@@ -10,6 +10,7 @@ create table if not exists profiles (
   handle text unique not null,
   face_hash text not null,
   face_embedding double precision[] not null,
+  photo text,
   created_at timestamptz not null default now()
 );
 
