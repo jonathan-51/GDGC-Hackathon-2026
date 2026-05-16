@@ -26,10 +26,13 @@ export default function Auth() {
   const { session, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? '/register';
-
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
+  const explicitRedirect = (location.state as { from?: string } | null)?.from;
+  const redirectTo =
+    mode === 'signin'
+      ? '/'
+      : explicitRedirect ?? '/register';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);

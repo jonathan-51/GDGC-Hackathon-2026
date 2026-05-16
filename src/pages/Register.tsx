@@ -34,6 +34,9 @@ export default function Register() {
   const [passport, setPassport] = useState<StoredPassport | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [platformAvailable, setPlatformAvailable] = useState(false);
+  const [platformPending, setPlatformPending] = useState<
+    { hash: string; credentialId: string; biometricType: string } | null
+  >(null);
 
   useEffect(() => {
     const existing = loadPassport();
@@ -122,7 +125,7 @@ export default function Register() {
       // Duplicate-face check: scan every existing profile's embedding and
       // refuse this registration if any of them are close enough to be the
       // same person. Stops one human from spinning up multiple accounts.
-      if (input.source === 'face' && input.embedding.length > 0) {
+      if (input.embedding.length > 0) {
         const existingEmbeddings = await listFaceEmbeddings();
         const candidate = Float32Array.from(input.embedding);
         let closest: { handle: string; distance: number } | null = null;
@@ -182,9 +185,20 @@ export default function Register() {
         setStage('no-face');
         return;
       }
-      const hash = await hashEmbedding(embedding);
       const photo = captureVideoFrame(videoRef.current) ?? undefined;
-      await finalize({ hash, embedding: Array.from(embedding), source: 'face', photo, biometricType: 'Face Scan' });
+      if (platformPending) {
+        await finalize({
+          hash: platformPending.hash,
+          embedding: Array.from(embedding),
+          source: 'platform',
+          photo,
+          credentialId: platformPending.credentialId,
+          biometricType: platformPending.biometricType,
+        });
+      } else {
+        const hash = await hashEmbedding(embedding);
+        await finalize({ hash, embedding: Array.from(embedding), source: 'face', photo, biometricType: 'Face Scan' });
+      }
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Capture failed.');
@@ -206,7 +220,12 @@ export default function Register() {
         setStage('idle');
         return;
       }
-      await finalize({ hash: result.hash, embedding: [], source: 'platform', credentialId: result.credentialId, biometricType: detectBiometricType() });
+      setPlatformPending({
+        hash: result.hash,
+        credentialId: result.credentialId,
+        biometricType: detectBiometricType(),
+      });
+      await startCamera();
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Device biometric failed.');
@@ -220,6 +239,7 @@ export default function Register() {
     setHandle('');
     setStage('idle');
     setError(null);
+    setPlatformPending(null);
   }
 
   if (authLoading) {
@@ -249,6 +269,12 @@ export default function Register() {
       {error && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 px-4 py-3 text-sm font-mono">
           {error}
+        </div>
+      )}
+
+      {platformPending && stage !== 'syncing' && stage !== 'done' && (
+        <div className="rounded-lg border border-cyan-electric/40 bg-cyan-electric/10 text-cyan-electric px-4 py-3 text-sm font-mono">
+          Device biometric registered. Now capture your face to finish your card.
         </div>
       )}
 

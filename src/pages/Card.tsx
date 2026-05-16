@@ -54,14 +54,6 @@ export default function Card() {
     listCredentialPhotos(profile.id).then(setCredentialPhotos).catch(console.error);
   }, [profile]);
 
-  // Auto-prompt platform (fingerprint/hello) users who have no photo yet.
-  useEffect(() => {
-    if (!passport || !profile) return;
-    if (passport.source === 'platform' && !profile.photo) {
-      setShowPhotoModal(true);
-    }
-  }, [passport, profile]);
-
   if (loading) {
     return <div className="text-slate-400 font-mono">Loading your card…</div>;
   }
