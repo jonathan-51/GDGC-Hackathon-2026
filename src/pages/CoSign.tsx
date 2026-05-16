@@ -4,9 +4,10 @@ import QRScanner from '../components/QRScanner';
 import FaceVerify from '../components/FaceVerify';
 import HardwareWitnessBox from '../components/HardwareWitnessBox';
 import { useUser } from '../hooks/useUser';
-import { createVouch, getProfile, getProfileByHash } from '../lib/db';
+import { createVouch, getProfile, getProfileByHash, listVouchesFor, listVouchesByVoucher } from '../lib/db';
+import type { VouchWithVouchee } from '../lib/db';
 import { identifyHardwareWitness } from '../lib/webauthn';
-import type { Profile } from '../lib/types';
+import type { Profile, VouchWithVoucher } from '../lib/types';
 
 type Stage = 'scan' | 'review' | 'verify' | 'submitting' | 'done' | 'error';
 
@@ -29,14 +30,24 @@ function parseQr(text: string): ScannedCard | null {
 }
 
 export default function CoSign() {
-  const { passport, profile, loading, refresh } = useUser();
+  const { passport, profile, vouches: myVouches, loading, refresh } = useUser();
   const [searchParams] = useSearchParams();
   const prefilledRef = useRef(false);
   const [stage, setStage] = useState<Stage>('scan');
   const [scanned, setScanned] = useState<ScannedCard | null>(null);
   const [target, setTarget] = useState<Profile | null>(null);
+  const [targetVouches, setTargetVouches] = useState<VouchWithVoucher[]>([]);
+  const [targetVouchees, setTargetVouchees] = useState<VouchWithVouchee[]>([]);
   const [context, setContext] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const myVoucherIds = new Set(myVouches.map((v) => v.voucher.id));
+
+  useEffect(() => {
+    if (!target) return;
+    listVouchesFor(target.id).then(setTargetVouches).catch(console.error);
+    listVouchesByVoucher(target.id).then(setTargetVouchees).catch(console.error);
+  }, [target]);
 
   useEffect(() => {
     if (prefilledRef.current) return;
@@ -176,6 +187,68 @@ export default function CoSign() {
               </div>
             </div>
           </div>
+
+          {/* People who vouched FOR this person */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono uppercase tracking-widest text-slate-400">
+              Vouched by ({targetVouches.length})
+            </div>
+            {targetVouches.length === 0 ? (
+              <div className="text-slate-500 text-sm font-mono">No one has vouched for them yet.</div>
+            ) : (
+              <ul className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                {targetVouches.map((v) => {
+                  const mutual = myVoucherIds.has(v.voucher.id);
+                  return (
+                    <li key={v.id} className={`flex items-start justify-between gap-3 rounded-lg px-3 py-2 border text-sm ${
+                      mutual ? 'border-cyan-electric/30 bg-cyan-electric/5' : 'border-white/5 bg-white/[0.03]'
+                    }`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {mutual && <span className="w-1.5 h-1.5 rounded-full bg-cyan-electric shrink-0" />}
+                        <div className="min-w-0">
+                          <Link to={`/p/${v.voucher.handle}`} className={`font-mono text-sm hover:underline ${mutual ? 'text-cyan-electric' : 'text-white'}`}>
+                            @{v.voucher.handle}
+                          </Link>
+                          {mutual && <span className="ml-2 text-[10px] text-cyan-electric/70 font-mono">mutual</span>}
+                          {v.context && <div className="text-xs text-slate-400 mt-0.5 truncate">{v.context}</div>}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                        {new Date(v.created_at).toLocaleDateString()}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* People this person has vouched for */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono uppercase tracking-widest text-slate-400">
+              Has vouched for ({targetVouchees.length})
+            </div>
+            {targetVouchees.length === 0 ? (
+              <div className="text-slate-500 text-sm font-mono">Hasn't vouched for anyone yet.</div>
+            ) : (
+              <ul className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                {targetVouchees.map((v) => (
+                  <li key={v.id} className="flex items-start justify-between gap-3 rounded-lg px-3 py-2 border border-white/5 bg-white/[0.03] text-sm">
+                    <div className="min-w-0">
+                      <Link to={`/p/${v.vouchee.handle}`} className="font-mono text-white text-sm hover:underline">
+                        @{v.vouchee.handle}
+                      </Link>
+                      {v.context && <div className="text-xs text-slate-400 mt-0.5 truncate">{v.context}</div>}
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                      {new Date(v.created_at).toLocaleDateString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-mono text-slate-400 uppercase tracking-widest">
               Optional context
