@@ -87,11 +87,22 @@ export interface StoredPassport {
   hash: string;
   // Hex-encoded WebAuthn credential ID — platform source only.
   credentialId?: string;
+  // Human-readable biometric method, e.g. "Face ID", "Touch ID", "Fingerprint".
+  biometricType?: string;
   // Empty array for platform (WebAuthn) source; face embedding for camera source.
   embedding: number[];
   // Data URL of a compressed still captured at registration time (face source only).
   photo?: string;
   createdAt: number;
+}
+
+export function detectBiometricType(): string {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad/.test(ua)) return 'Face ID / Touch ID';
+  if (/Macintosh|MacIntel/.test(ua)) return 'Touch ID';
+  if (/Android/.test(ua)) return 'Fingerprint';
+  if (/Windows/.test(ua)) return 'Windows Hello';
+  return 'Device Biometric';
 }
 
 // Snapshot a video frame, scale down, and return a JPEG data URL.

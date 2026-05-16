@@ -111,9 +111,23 @@ export default function Card() {
                 <div className="text-2xl md:text-4xl font-mono font-bold text-cyan-electric mt-1 break-all">
                   @{profile.handle}
                 </div>
-                <div className="text-xs text-slate-500 font-mono mt-1">
-                  {passport.source === 'platform' ? 'device biometric' : 'face hash'} ·{' '}
-                  {passport.hash.slice(0, 16)}…
+                <div className="flex items-center gap-2 mt-2 justify-center md:justify-start flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-cyan-electric/40 bg-cyan-electric/10 text-cyan-electric font-mono text-xs">
+                    {passport.source === 'platform' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 shrink-0">
+                        <rect x="2" y="6" width="20" height="14" rx="2" />
+                        <path d="M8 6V4a4 4 0 018 0v2" strokeLinecap="round" />
+                        <circle cx="12" cy="13" r="2" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-3.5 h-3.5 shrink-0">
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+                      </svg>
+                    )}
+                    {passport.biometricType ?? (passport.source === 'platform' ? 'Device Biometric' : 'Face Scan')}
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">{passport.hash.slice(0, 16)}…</span>
                 </div>
               </div>
             </div>

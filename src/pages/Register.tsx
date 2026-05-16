@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import {
   captureVideoFrame,
   clearPassport,
+  detectBiometricType,
   getFaceEmbedding,
   hashEmbedding,
   loadFaceModels,
@@ -89,6 +90,7 @@ export default function Register() {
     source: 'face' | 'platform';
     photo?: string;
     credentialId?: string;
+    biometricType?: string;
   }) {
     setStage('syncing');
     const trimmed = handle.trim();
@@ -114,6 +116,7 @@ export default function Register() {
         handle: profile.handle,
         hash: input.hash,
         credentialId: input.credentialId,
+        biometricType: input.biometricType,
         embedding: input.embedding,
         photo: input.photo,
         createdAt: Date.now(),
@@ -141,7 +144,7 @@ export default function Register() {
       }
       const hash = await hashEmbedding(embedding);
       const photo = captureVideoFrame(videoRef.current) ?? undefined;
-      await finalize({ hash, embedding: Array.from(embedding), source: 'face', photo });
+      await finalize({ hash, embedding: Array.from(embedding), source: 'face', photo, biometricType: 'Face Scan' });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Capture failed.');
@@ -163,7 +166,7 @@ export default function Register() {
         setStage('idle');
         return;
       }
-      await finalize({ hash: result.hash, embedding: [], source: 'platform', credentialId: result.credentialId });
+      await finalize({ hash: result.hash, embedding: [], source: 'platform', credentialId: result.credentialId, biometricType: detectBiometricType() });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Device biometric failed.');
