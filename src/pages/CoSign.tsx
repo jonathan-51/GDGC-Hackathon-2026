@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import QRScanner from '../components/QRScanner';
 import FaceVerify from '../components/FaceVerify';
 import HardwareWitnessBox from '../components/HardwareWitnessBox';
@@ -30,11 +30,25 @@ function parseQr(text: string): ScannedCard | null {
 
 export default function CoSign() {
   const { passport, profile, loading, refresh } = useUser();
+  const [searchParams] = useSearchParams();
+  const prefilledRef = useRef(false);
   const [stage, setStage] = useState<Stage>('scan');
   const [scanned, setScanned] = useState<ScannedCard | null>(null);
   const [target, setTarget] = useState<Profile | null>(null);
   const [context, setContext] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    if (!passport || !profile) return;
+    const handle = searchParams.get('handle');
+    const hash = searchParams.get('hash');
+    const pid = searchParams.get('pid') ?? undefined;
+    if (!handle || !hash) return;
+    prefilledRef.current = true;
+    handleScan(JSON.stringify({ h: handle, id: hash, pid }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passport, profile, searchParams]);
 
   if (loading) {
     return <div className="text-slate-400 font-mono">Loading…</div>;

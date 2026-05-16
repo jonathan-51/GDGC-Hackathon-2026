@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { label: 'How It Works', to: '/#how' },
   { label: 'Generate Card', to: '/register' },
   { label: 'Verify Peer', to: '/cosign' },
+  { label: 'Scan Profile', to: '/scan' },
   { label: 'Live Skill Assessment', to: '/skill-test' },
   { label: 'Review Queue', to: '/review' },
   { label: 'My Card', to: '/card' },

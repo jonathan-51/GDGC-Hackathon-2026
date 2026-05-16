@@ -7,6 +7,7 @@ import CoSign from './pages/CoSign';
 import SkillTest from './pages/SkillTest';
 import Review from './pages/Review';
 import PublicProfile from './pages/Profile';
+import ScanProfile from './pages/ScanProfile';
 import './App.css';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/card" element={<Card />} />
           <Route path="/cosign" element={<CoSign />} />
+          <Route path="/scan" element={<ScanProfile />} />
           <Route path="/skill-test" element={<SkillTest />} />
           <Route path="/review" element={<Review />} />
           <Route path="/p/:handle" element={<PublicProfile />} />
