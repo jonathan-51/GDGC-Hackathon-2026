@@ -77,9 +77,15 @@ export async function hashEmbedding(embedding: Float32Array): Promise<string> {
 
 const STORAGE_KEY = 'vouch.passport.v1';
 
+export type PassportSource = 'face' | 'platform';
+
 export interface StoredPassport {
+  // Supabase profile UUID — set once the profile is created server-side.
+  profileId?: string;
+  source: PassportSource;
   handle: string;
   hash: string;
+  // Empty array for platform (WebAuthn) source; face embedding for camera source.
   embedding: number[];
   createdAt: number;
 }

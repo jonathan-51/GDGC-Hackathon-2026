@@ -1,8 +1,255 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import FaceVerify from '../components/FaceVerify';
+import { useUser } from '../hooks/useUser';
+import {
+  listPendingTestsForSkill,
+  maybeFinalizeTest,
+  submitReview,
+} from '../lib/db';
+import { APPROVAL_THRESHOLD, VOUCH_SKILLS } from '../lib/types';
+import type { SkillTestWithCandidate } from '../lib/types';
+
 export default function Review() {
+  const { passport, profile, credentials, loading } = useUser();
+  const [skill, setSkill] = useState<string>('');
+  const [tests, setTests] = useState<SkillTestWithCandidate[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [pendingVerdict, setPendingVerdict] = useState<{
+    test: SkillTestWithCandidate;
+    verdict: 'approve' | 'reject';
+    notes: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  // Skills the reviewer is verified in. For demo we also offer "open review"
+  // across all skills so the flow is demonstrable before anyone is credentialed.
+  const verifiedSkills = credentials
+    .filter((c) => !c.revoked)
+    .map((c) => c.skill);
+
+  useEffect(() => {
+    if (!skill || !profile) return;
+    setError(null);
+    listPendingTestsForSkill(skill, profile.id)
+      .then(setTests)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [skill, profile]);
+
+  if (loading) {
+    return <div className="text-slate-400 font-mono">Loading…</div>;
+  }
+
+  if (!passport || !profile) {
+    return (
+      <div className="max-w-xl space-y-4">
+        <h2 className="text-3xl font-mono text-cyan-electric">Review queue</h2>
+        <p className="text-slate-400">
+          You need a card before you can review peers.
+        </p>
+        <Link
+          to="/register"
+          className="inline-block px-6 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold hover:shadow-glow transition"
+        >
+          Generate your card
+        </Link>
+      </div>
+    );
+  }
+
+  async function commit(distance: number | null) {
+    if (!pendingVerdict || !profile) return;
+    setBusy(true);
+    const { test, verdict, notes } = pendingVerdict;
+    try {
+      await submitReview({
+        test_id: test.id,
+        reviewer_id: profile.id,
+        verdict,
+        notes: notes.trim() || undefined,
+      });
+      const outcome = await maybeFinalizeTest(test.id, test.candidate.id, test.skill);
+      setTests((cur) => cur.filter((t) => t.id !== test.id));
+      setFlash(
+        outcome.finalized
+          ? `Threshold reached — test ${outcome.outcome}.`
+          : `Recorded as ${verdict}. Needs ${APPROVAL_THRESHOLD} of the same verdict to finalize.`,
+      );
+      // Surface match score for honesty.
+      if (distance !== null) {
+        console.info('reviewer face-match distance', distance);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to record verdict.');
+    } finally {
+      setBusy(false);
+      setPendingVerdict(null);
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-3xl font-mono text-cyan-electric">Review</h2>
-      <p className="text-slate-400">Inspect the trust graph.</p>
+    <div className="max-w-3xl mx-auto space-y-8">
+      <header className="space-y-2">
+        <h2 className="text-4xl font-mono font-bold text-cyan-electric">
+          Peer Review
+        </h2>
+        <p className="text-slate-400">
+          Read what a candidate wrote under time pressure, then approve or
+          reject. {APPROVAL_THRESHOLD} approvals issue a credential;{' '}
+          {APPROVAL_THRESHOLD} rejections close the test. Every verdict is signed
+          with your biometric.
+        </p>
+      </header>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-mono text-slate-400 uppercase tracking-widest">
+          Review queue for skill
+        </label>
+        <select
+          value={skill}
+          onChange={(e) => setSkill(e.target.value)}
+          className="w-full bg-navy-deep border border-cyan-electric/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-cyan-electric transition"
+        >
+          <option value="">— choose a skill —</option>
+          {VOUCH_SKILLS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+              {verifiedSkills.includes(s) ? ' (you are credentialed)' : ''}
+            </option>
+          ))}
+        </select>
+        {skill && !verifiedSkills.includes(skill) && (
+          <p className="text-xs text-amber-300/80 font-mono">
+            You are not yet credentialed in {skill}. In production, only
+            credentialed peers can review. Open for demo.
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 px-4 py-3 text-sm font-mono">
+          {error}
+        </div>
+      )}
+      {flash && (
+        <div className="rounded-lg border border-cyan-electric/40 bg-cyan-electric/5 text-cyan-electric px-4 py-3 text-sm font-mono">
+          {flash}
+        </div>
+      )}
+
+      {skill && tests.length === 0 && (
+        <div className="rounded-lg border border-cyan-electric/10 bg-navy-deep/40 px-4 py-6 text-center text-slate-400 text-sm">
+          No pending tests in {skill}.
+        </div>
+      )}
+
+      <ul className="space-y-4">
+        {tests.map((t) => (
+          <li
+            key={t.id}
+            className="rounded-2xl border border-cyan-electric/20 bg-navy-deep/60 p-5 space-y-4"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <div className="font-mono text-cyan-electric text-lg">
+                  @{t.candidate.handle}
+                </div>
+                <div className="text-xs text-slate-500 font-mono">
+                  {new Date(t.created_at).toLocaleString()}
+                  {t.duration_seconds != null && (
+                    <> · answered in {t.duration_seconds}s</>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs font-mono text-slate-400">{t.skill}</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">
+                  Scenario
+                </div>
+                <div className="text-slate-300 text-sm">{t.question}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">
+                  Answer
+                </div>
+                <div className="text-white text-sm whitespace-pre-wrap">
+                  {t.answer}
+                </div>
+              </div>
+            </div>
+            <ReviewActions
+              onApprove={(notes) =>
+                setPendingVerdict({ test: t, verdict: 'approve', notes })
+              }
+              onReject={(notes) =>
+                setPendingVerdict({ test: t, verdict: 'reject', notes })
+              }
+              disabled={busy}
+            />
+          </li>
+        ))}
+      </ul>
+
+      {pendingVerdict && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur z-30 flex items-center justify-center p-4">
+          <div className="bg-navy-deep border border-cyan-electric/40 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-glow">
+            <h3 className="text-xl font-mono text-cyan-electric">
+              Sign your {pendingVerdict.verdict}
+            </h3>
+            <p className="text-slate-400 text-sm">
+              Re-verify your biometric to record this verdict against{' '}
+              <span className="text-white">@{pendingVerdict.test.candidate.handle}</span>.
+            </p>
+            <FaceVerify
+              passport={passport}
+              onCancel={() => setPendingVerdict(null)}
+              onVerified={({ distance }) => commit(distance)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewActions({
+  onApprove,
+  onReject,
+  disabled,
+}: {
+  onApprove: (notes: string) => void;
+  onReject: (notes: string) => void;
+  disabled: boolean;
+}) {
+  const [notes, setNotes] = useState('');
+  return (
+    <div className="space-y-3 border-t border-cyan-electric/10 pt-4">
+      <input
+        type="text"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Optional reviewer notes"
+        className="w-full bg-navy border border-cyan-electric/30 text-white font-mono px-3 py-2 rounded text-sm focus:outline-none focus:border-cyan-electric transition"
+      />
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={() => onReject(notes)}
+          disabled={disabled}
+          className="px-5 py-2 rounded-full border border-red-400/40 text-red-300 font-mono text-sm hover:bg-red-500/10 disabled:opacity-40"
+        >
+          Reject
+        </button>
+        <button
+          onClick={() => onApprove(notes)}
+          disabled={disabled}
+          className="px-5 py-2 rounded-full bg-cyan-electric text-navy-deep font-semibold text-sm hover:shadow-glow disabled:opacity-40"
+        >
+          Approve
+        </button>
+      </div>
     </div>
   );
 }
