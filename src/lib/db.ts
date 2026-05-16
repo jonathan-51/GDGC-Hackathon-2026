@@ -148,6 +148,18 @@ export async function listTestsForCandidate(candidate_id: string): Promise<Skill
   return (data ?? []) as SkillTest[];
 }
 
+export async function listReviewsForTests(
+  test_ids: string[],
+): Promise<SkillReview[]> {
+  if (test_ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from('skill_reviews')
+    .select('*')
+    .in('test_id', test_ids);
+  if (error) throw error;
+  return (data ?? []) as SkillReview[];
+}
+
 export async function listReviewsForTest(test_id: string): Promise<SkillReview[]> {
   const { data, error } = await supabase
     .from('skill_reviews')

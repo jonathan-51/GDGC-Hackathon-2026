@@ -4,6 +4,7 @@ import FaceVerify from '../components/FaceVerify';
 import { useUser } from '../hooks/useUser';
 import {
   listAllPendingTests,
+  listReviewsForTests,
   maybeFinalizeTest,
   submitReview,
 } from '../lib/db';
@@ -14,6 +15,7 @@ export default function Review() {
   const { passport, profile, credentials, loading } = useUser();
   const [filter, setFilter] = useState<string>('');
   const [allTests, setAllTests] = useState<SkillTestWithCandidate[]>([]);
+  const [tallies, setTallies] = useState<Record<string, { approve: number; reject: number }>>({});
   const [busy, setBusy] = useState(false);
   const [pendingVerdict, setPendingVerdict] = useState<{
     test: SkillTestWithCandidate;
@@ -31,7 +33,23 @@ export default function Review() {
     if (!profile) return;
     setError(null);
     listAllPendingTests(profile.id)
-      .then(setAllTests)
+      .then(async (rows) => {
+        setAllTests(rows);
+        try {
+          const reviews = await listReviewsForTests(rows.map((r) => r.id));
+          const next: Record<string, { approve: number; reject: number }> = {};
+          for (const r of rows) next[r.id] = { approve: 0, reject: 0 };
+          for (const rev of reviews) {
+            const t = next[rev.test_id] ?? { approve: 0, reject: 0 };
+            if (rev.verdict === 'approve') t.approve += 1;
+            else if (rev.verdict === 'reject') t.reject += 1;
+            next[rev.test_id] = t;
+          }
+          setTallies(next);
+        } catch (e) {
+          console.warn('failed to load review tallies', e);
+        }
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [profile, flash]);
 
@@ -166,20 +184,41 @@ export default function Review() {
                   )}
                 </div>
               </div>
-              <span
-                className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
-                  verifiedSkills.includes(t.skill.toLowerCase())
-                    ? 'border-cyan-electric/50 text-cyan-electric bg-cyan-electric/5'
-                    : 'border-slate-600/40 text-slate-400'
-                }`}
-                title={
-                  verifiedSkills.includes(t.skill.toLowerCase())
-                    ? 'You hold a credential in this exact skill'
-                    : 'You are not credentialed in this skill — production would gate review'
-                }
-              >
-                {t.skill}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {(() => {
+                  const tally = tallies[t.id] ?? { approve: 0, reject: 0 };
+                  const aiApprove = t.ai_verdict === 'approve' ? 1 : 0;
+                  const aiReject = t.ai_verdict === 'reject' ? 1 : 0;
+                  const approves = tally.approve + aiApprove;
+                  const rejects = tally.reject + aiReject;
+                  return (
+                    <span
+                      className="text-xs font-mono px-2 py-0.5 rounded-full border border-cyan-electric/20 text-slate-300 bg-black/20"
+                      title={`${tally.approve} peer approve${tally.approve === 1 ? '' : 's'}${aiApprove ? ' + AI approve' : ''} / ${tally.reject} peer reject${tally.reject === 1 ? '' : 's'}${aiReject ? ' + AI reject' : ''} · ${APPROVAL_THRESHOLD} of either finalises`}
+                    >
+                      <span className="text-cyan-electric">{approves}</span>
+                      <span className="opacity-50">/{APPROVAL_THRESHOLD}</span>
+                      <span className="opacity-50"> · </span>
+                      <span className="text-red-300">{rejects}</span>
+                      <span className="opacity-50">/{APPROVAL_THRESHOLD}</span>
+                    </span>
+                  );
+                })()}
+                <span
+                  className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                    verifiedSkills.includes(t.skill.toLowerCase())
+                      ? 'border-cyan-electric/50 text-cyan-electric bg-cyan-electric/5'
+                      : 'border-slate-600/40 text-slate-400'
+                  }`}
+                  title={
+                    verifiedSkills.includes(t.skill.toLowerCase())
+                      ? 'You hold a credential in this exact skill'
+                      : 'You are not credentialed in this skill — production would gate review'
+                  }
+                >
+                  {t.skill}
+                </span>
+              </div>
             </div>
             <div className="space-y-3">
               <div>
