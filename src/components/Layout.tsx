@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: 'Live Skill Assessment', to: '/skill-test' },
   { label: 'Verify Peer', to: '/cosign' },
   { label: 'Scan Profile', to: '/scan' },
+  { label: 'Nearby', to: '/map' },
   { label: 'Review Queue', to: '/review' },
   { label: 'Register', to: '/register' },
 ];
@@ -26,57 +27,71 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-navy text-slate-200 flex flex-col">
       <nav className="border-b border-white/5 bg-navy-deep/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-8">
-          <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white">
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white shrink-0">
             <VouchIcon className="w-6 h-6 text-cyan-electric" />
             <span>Vouch</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-7 text-sm text-slate-400">
-            {NAV_LINKS.map((l) => (
-              <Link key={l.label} to={l.to} className="hover:text-white transition-colors">
-                {l.label}
-              </Link>
-            ))}
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-1 text-sm text-slate-400">
+            {NAV_LINKS.map((l) => {
+              const active = pathname === l.to;
+              return (
+                <Link
+                  key={l.label}
+                  to={l.to}
+                  className={`px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                    active
+                      ? 'text-white bg-white/5'
+                      : 'hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="hidden lg:flex items-center gap-3 shrink-0 ml-auto">
             {session ? (
-              <div className="flex items-center gap-3 pl-4 border-l border-cyan-electric/15">
-                <span className="text-xs text-cyan-electric/80 font-mono truncate max-w-[160px]" title={username}>
+              <>
+                <span
+                  className="text-xs text-cyan-electric/80 font-mono truncate max-w-[140px]"
+                  title={username}
+                >
                   @{username}
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1 rounded-full"
+                  className="text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1.5 rounded-full transition"
                 >
                   Sign out
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-3 pl-4 border-l border-cyan-electric/15">
-                <Link to="/auth" className="hover:text-cyan-electric transition-colors">
+              <>
+                <Link to="/auth" className="text-sm text-slate-300 hover:text-cyan-electric transition-colors">
                   Sign in
                 </Link>
                 <Link
                   to="/auth"
                   state={{ from: '/register' }}
-                  className="text-xs font-mono bg-cyan-electric text-navy-deep font-semibold px-3 py-1 rounded-full hover:shadow-glow transition"
+                  className="text-xs font-mono bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 font-semibold px-3 py-1.5 rounded-full hover:bg-cyan-electric/20 transition"
                 >
                   Sign up
                 </Link>
-              </div>
+              </>
             )}
-          </div>
-
-          <div className="hidden md:flex items-center gap-3">
             <Link
               to="/card"
-              className="px-5 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-all"
+              className="px-4 py-1.5 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-all"
             >
               My Card
             </Link>
           </div>
 
           <button
-            className="md:hidden text-slate-300 hover:text-white transition-colors"
+            className="lg:hidden ml-auto text-slate-300 hover:text-white transition-colors"
             onClick={() => setMenuOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -93,7 +108,7 @@ export default function Layout() {
         </div>
 
         {menuOpen && (
-          <div className="md:hidden border-t border-white/5 bg-navy-deep/95 px-6 py-4 flex flex-col gap-4 text-sm text-slate-300">
+          <div className="lg:hidden border-t border-white/5 bg-navy-deep/95 px-6 py-4 flex flex-col gap-4 text-sm text-slate-300">
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.label}
@@ -116,10 +131,23 @@ export default function Layout() {
                   </button>
                 </>
               ) : (
-                <>
-                  <Link to="/auth" className="hover:text-cyan-electric" onClick={() => setMenuOpen(false)}>Sign in</Link>
-                  <Link to="/auth" state={{ from: '/register' }} className="hover:text-cyan-electric" onClick={() => setMenuOpen(false)}>Sign up</Link>
-                </>
+                <div className="flex gap-2">
+                  <Link
+                    to="/auth"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex-1 text-center text-sm font-mono text-slate-200 border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/10 transition"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/auth"
+                    state={{ from: '/register' }}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex-1 text-center text-sm font-mono font-semibold bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/20 transition"
+                  >
+                    Sign up
+                  </Link>
+                </div>
               )}
             </div>
             <Link
@@ -144,6 +172,7 @@ export default function Layout() {
             <Link to="/skill-test" className="hover:text-white transition-colors">Live Skill Assessment</Link>
             <Link to="/cosign" className="hover:text-white transition-colors">Verify Peer</Link>
             <Link to="/scan" className="hover:text-white transition-colors">Scan Profile</Link>
+            <Link to="/map" className="hover:text-white transition-colors">Nearby</Link>
             <Link to="/review" className="hover:text-white transition-colors">Review Queue</Link>
             <Link to="/register" className="hover:text-white transition-colors">Register</Link>
           </div>

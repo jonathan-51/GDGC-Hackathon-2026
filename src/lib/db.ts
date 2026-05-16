@@ -82,6 +82,18 @@ export async function searchProfilesByHandle(
   return (data ?? []) as Pick<Profile, 'id' | 'handle' | 'photo'>[];
 }
 
+export async function listProfiles(
+  limit = 24,
+): Promise<Pick<Profile, 'id' | 'handle' | 'photo'>[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, handle, photo')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Pick<Profile, 'id' | 'handle' | 'photo'>[];
+}
+
 export async function getProfileByHash(hash: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')

@@ -8,6 +8,7 @@ import SkillTest from './pages/SkillTest';
 import Review from './pages/Review';
 import PublicProfile from './pages/Profile';
 import ScanProfile from './pages/ScanProfile';
+import MapNearby from './pages/MapNearby';
 import Auth from './pages/Auth';
 import './App.css';
 
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/card" element={<Card />} />
           <Route path="/cosign" element={<CoSign />} />
           <Route path="/scan" element={<ScanProfile />} />
+          <Route path="/map" element={<MapNearby />} />
           <Route path="/skill-test" element={<SkillTest />} />
           <Route path="/review" element={<Review />} />
           <Route path="/p/:handle" element={<PublicProfile />} />
