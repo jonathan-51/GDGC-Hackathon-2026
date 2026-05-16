@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
-import { listTestsForCandidate } from '../lib/db';
+import { listTestsForCandidate, updateProfilePhoto } from '../lib/db';
+import { captureVideoFrame } from '../lib/biometric';
 import type { SkillTest } from '../lib/types';
 
 export default function Card() {
   const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
   const [qr, setQr] = useState<string | null>(null);
   const [tests, setTests] = useState<SkillTest[]>([]);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   useEffect(() => {
     if (!passport) return;
@@ -23,6 +25,14 @@ export default function Card() {
     if (!profile) return;
     listTestsForCandidate(profile.id).then(setTests).catch(console.error);
   }, [profile]);
+
+  // Auto-prompt platform (fingerprint/hello) users who have no photo yet.
+  useEffect(() => {
+    if (!passport || !profile) return;
+    if (passport.source === 'platform' && !profile.photo) {
+      setShowPhotoModal(true);
+    }
+  }, [passport, profile]);
 
   if (loading) {
     return <div className="text-slate-400 font-mono">Loading your card…</div>;
@@ -97,13 +107,26 @@ export default function Card() {
           )}
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div className="flex items-center gap-4 justify-center md:justify-start">
-              {profile.photo && (
-                <img
-                  src={profile.photo}
-                  alt={`${profile.handle} portrait`}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-cyan-electric/60 shadow-glow shrink-0"
-                />
-              )}
+              <button
+                onClick={() => setShowPhotoModal(true)}
+                className="shrink-0 group relative w-20 h-20 rounded-full overflow-hidden border-2 border-cyan-electric/60 shadow-glow focus:outline-none"
+                title="Update photo"
+              >
+                {profile.photo ? (
+                  <img src={profile.photo} alt={`${profile.handle} portrait`} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-navy-light flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8 text-slate-500">
+                      <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5 text-white">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
+                  </svg>
+                </div>
+              </button>
               <div>
                 <div className="text-slate-500 font-mono text-xs uppercase tracking-widest">
                   Identity
@@ -242,7 +265,177 @@ export default function Card() {
           ↻ Refresh
         </button>
       </div>
+
+      <AnimatePresence>
+        {showPhotoModal && profile && (
+          <PhotoModal
+            profileId={profile.id}
+            onSaved={async () => { await refresh(); setShowPhotoModal(false); }}
+            onClose={() => setShowPhotoModal(false)}
+            isRequired={!profile.photo}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function PhotoModal({
+  profileId,
+  onSaved,
+  onClose,
+  isRequired,
+}: {
+  profileId: string;
+  onSaved: () => Promise<void>;
+  onClose: () => void;
+  isRequired: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<'choose' | 'camera' | 'saving'>('choose');
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function startCamera() {
+    setMode('camera');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch {
+      setError('Could not access camera.');
+      setMode('choose');
+    }
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }
+
+  function captureSnapshot() {
+    if (!videoRef.current) return;
+    const photo = captureVideoFrame(videoRef.current, 480, 0.85);
+    if (photo) { stopCamera(); setPreview(photo); setMode('choose'); }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setPreview(ev.target?.result as string); };
+    reader.readAsDataURL(file);
+  }
+
+  async function save() {
+    if (!preview) return;
+    setMode('saving');
+    setError(null);
+    try {
+      await updateProfilePhoto(profileId, preview);
+      await onSaved();
+    } catch {
+      setError('Failed to save photo.');
+      setMode('choose');
+    }
+  }
+
+  useEffect(() => () => stopCamera(), []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget && !isRequired) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 16 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 16 }}
+        className="bg-navy-deep border border-cyan-electric/30 rounded-2xl p-6 w-full max-w-sm space-y-5 shadow-glow"
+      >
+        <div>
+          <h3 className="text-xl font-mono font-bold text-cyan-electric">Add your photo</h3>
+          <p className="text-slate-400 text-sm mt-1">
+            {isRequired
+              ? 'A photo is required on your card. Take one or upload from your library.'
+              : 'Update your profile photo.'}
+          </p>
+        </div>
+
+        {mode === 'camera' ? (
+          <div className="space-y-3">
+            <div className="rounded-xl overflow-hidden aspect-square bg-black border border-cyan-electric/20 relative">
+              <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={captureSnapshot}
+                className="flex-1 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold text-sm hover:shadow-glow transition"
+              >
+                Capture
+              </button>
+              <button onClick={() => { stopCamera(); setMode('choose'); }} className="px-4 py-2 text-slate-400 hover:text-cyan-electric text-sm">
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {preview && (
+              <div className="flex justify-center">
+                <img src={preview} alt="Preview" className="w-32 h-32 rounded-full object-cover border-2 border-cyan-electric/60 shadow-glow" />
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={startCamera}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-sm hover:bg-cyan-electric/10 transition"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
+                </svg>
+                Take a photo
+              </button>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-sm hover:bg-cyan-electric/10 transition"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Upload from library
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            </div>
+            {error && <div className="text-red-300 text-xs font-mono text-center">{error}</div>}
+            <div className="flex gap-3 pt-1">
+              {preview && (
+                <button
+                  onClick={save}
+                  disabled={mode === 'saving'}
+                  className="flex-1 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold text-sm hover:shadow-glow disabled:opacity-40 transition"
+                >
+                  {mode === 'saving' ? 'Saving…' : 'Save photo'}
+                </button>
+              )}
+              {!isRequired && (
+                <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-cyan-electric text-sm">
+                  Skip
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 

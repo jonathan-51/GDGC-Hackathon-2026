@@ -11,6 +11,14 @@ import type {
 } from './types';
 import { APPROVAL_THRESHOLD } from './types';
 
+export async function updateProfilePhoto(id: string, photo: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ photo })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 export async function createProfile(input: {
   handle: string;
   face_hash: string;
