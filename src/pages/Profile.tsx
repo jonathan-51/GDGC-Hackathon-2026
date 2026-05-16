@@ -4,12 +4,19 @@ import QRCode from 'qrcode';
 import { motion } from 'framer-motion';
 import {
   getProfileByHandle,
+  listCredentialPhotos,
   listCredentialsFor,
   listTestsForCandidate,
   listVouchesFor,
 } from '../lib/db';
 import { useUser } from '../hooks/useUser';
-import type { Credential, Profile, SkillTest, VouchWithVoucher } from '../lib/types';
+import type {
+  Credential,
+  CredentialPhoto,
+  Profile,
+  SkillTest,
+  VouchWithVoucher,
+} from '../lib/types';
 
 export default function PublicProfile() {
   const { handle = '' } = useParams<{ handle: string }>();
@@ -21,6 +28,8 @@ export default function PublicProfile() {
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [interviews, setInterviews] = useState<SkillTest[]>([]);
+  const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
+  const [lightbox, setLightbox] = useState<CredentialPhoto | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +42,7 @@ export default function PublicProfile() {
     setVouches([]);
     setCredentials([]);
     setInterviews([]);
+    setCredentialPhotos([]);
     setQr(null);
 
     (async () => {
@@ -45,10 +55,11 @@ export default function PublicProfile() {
           return;
         }
         setProfile(p);
-        const [v, c, tests, qrUrl] = await Promise.all([
+        const [v, c, tests, photos, qrUrl] = await Promise.all([
           listVouchesFor(p.id),
           listCredentialsFor(p.id),
           listTestsForCandidate(p.id),
+          listCredentialPhotos(p.id),
           QRCode.toDataURL(
             JSON.stringify({ h: p.handle, id: p.face_hash, pid: p.id }),
             { width: 240, margin: 1, color: { dark: '#0a0e27', light: '#00ffd1' } },
@@ -58,6 +69,7 @@ export default function PublicProfile() {
         setVouches(v);
         setCredentials(c);
         setInterviews(tests.filter((t) => t.video_url));
+        setCredentialPhotos(photos);
         setQr(qrUrl);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -208,6 +220,81 @@ export default function PublicProfile() {
           </ul>
         )}
       </Section>
+
+      {credentialPhotos.length > 0 && (
+        <Section title="Credential photos">
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {credentialPhotos.map((p) => {
+              const pdf = /\.pdf(?:$|\?)/i.test(p.photo_url);
+              return (
+                <li
+                  key={p.id}
+                  className="rounded-lg border border-cyan-electric/20 bg-black/30 overflow-hidden"
+                >
+                  {pdf ? (
+                    <a
+                      href={p.photo_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center w-full aspect-square bg-gradient-to-br from-navy-deep to-black hover:from-cyan-electric/10 transition"
+                      title="Open PDF"
+                    >
+                      <div className="flex flex-col items-center gap-1 text-cyan-electric">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-10 h-10">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="font-mono text-[10px] tracking-widest">PDF</span>
+                      </div>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setLightbox(p)}
+                      className="block w-full aspect-square overflow-hidden"
+                    >
+                      <img
+                        src={p.photo_url}
+                        alt={p.label ?? 'credential'}
+                        className="w-full h-full object-cover hover:opacity-90 transition"
+                      />
+                    </button>
+                  )}
+                  {(p.label || pdf) && (
+                    <div className="px-2 py-1.5 text-[11px] font-mono text-slate-300 truncate" title={p.label ?? ''}>
+                      {p.label || 'PDF'}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      )}
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="max-w-3xl w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightbox.photo_url}
+              alt={lightbox.label ?? ''}
+              className="w-full max-h-[80vh] object-contain rounded-lg border border-cyan-electric/30 bg-black"
+            />
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <div className="font-mono text-cyan-electric">{lightbox.label || 'Untitled'}</div>
+              <button
+                onClick={() => setLightbox(null)}
+                className="px-4 py-1.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-xs hover:bg-cyan-electric/10"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {interviews.length > 0 && (
         <Section title="Interview recordings">

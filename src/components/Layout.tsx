@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { signOut, useAuth } from '../hooks/useAuth';
 
 const NAV_LINKS = [
   { label: 'How It Works', to: '/#how' },
@@ -15,6 +16,13 @@ export default function Layout() {
   const { pathname } = useLocation();
   const onHome = pathname === '/';
   const [menuOpen, setMenuOpen] = useState(false);
+  const { session } = useAuth();
+  const username = session
+    ? (session.user.user_metadata?.username as string | undefined)
+      ?? session.user.email?.replace(/@vouch\.local$/, '')
+      ?? session.user.email
+      ?? ''
+    : '';
 
   return (
     <div className="min-h-screen bg-navy text-slate-200 flex flex-col">
@@ -34,6 +42,32 @@ export default function Layout() {
                 {l.label}
               </Link>
             ))}
+            {session ? (
+              <div className="flex items-center gap-3 pl-4 border-l border-cyan-electric/15">
+                <span className="text-xs text-cyan-electric/80 font-mono truncate max-w-[160px]" title={username}>
+                  @{username}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1 rounded-full"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 pl-4 border-l border-cyan-electric/15">
+                <Link to="/auth" className="hover:text-cyan-electric transition-colors">
+                  Sign in
+                </Link>
+                <Link
+                  to="/auth"
+                  state={{ from: '/register' }}
+                  className="text-xs font-mono bg-cyan-electric text-navy-deep font-semibold px-3 py-1 rounded-full hover:shadow-glow transition"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
           <button
             className="md:hidden text-slate-300 hover:text-cyan-electric transition-colors"
@@ -63,6 +97,24 @@ export default function Layout() {
                 {l.label}
               </Link>
             ))}
+            <div className="border-t border-cyan-electric/10 pt-3 flex flex-col gap-3">
+              {session ? (
+                <>
+                  <span className="text-xs text-cyan-electric/80 font-mono truncate">@{username}</span>
+                  <button
+                    onClick={() => { signOut(); setMenuOpen(false); }}
+                    className="self-start text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1 rounded-full"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/auth" className="hover:text-cyan-electric" onClick={() => setMenuOpen(false)}>Sign in</Link>
+                  <Link to="/auth" state={{ from: '/register' }} className="hover:text-cyan-electric" onClick={() => setMenuOpen(false)}>Sign up</Link>
+                </>
+              )}
+            </div>
           </div>
         )}
       </nav>

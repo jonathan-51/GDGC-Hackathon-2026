@@ -3,14 +3,21 @@ import { Link } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
-import { listTestsForCandidate, updateProfilePhoto } from '../lib/db';
+import {
+  deleteCredentialPhoto,
+  listCredentialPhotos,
+  listTestsForCandidate,
+  updateProfilePhoto,
+  uploadCredentialPhoto,
+} from '../lib/db';
 import { captureVideoFrame } from '../lib/biometric';
-import type { Credential, SkillTest } from '../lib/types';
+import type { Credential, CredentialPhoto, SkillTest } from '../lib/types';
 
 export default function Card() {
   const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
   const [qr, setQr] = useState<string | null>(null);
   const [tests, setTests] = useState<SkillTest[]>([]);
+  const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   useEffect(() => {
@@ -24,6 +31,7 @@ export default function Card() {
   useEffect(() => {
     if (!profile) return;
     listTestsForCandidate(profile.id).then(setTests).catch(console.error);
+    listCredentialPhotos(profile.id).then(setCredentialPhotos).catch(console.error);
   }, [profile]);
 
   // Auto-prompt platform (fingerprint/hello) users who have no photo yet.
@@ -215,6 +223,14 @@ export default function Card() {
             })}
           </ul>
         )}
+      </Section>
+
+      <Section title="Credential photos">
+        <CredentialPhotosManager
+          profileId={profile.id}
+          photos={credentialPhotos}
+          onChange={setCredentialPhotos}
+        />
       </Section>
 
       {pendingTests.length > 0 && (
@@ -532,5 +548,198 @@ function SubmissionCard({ test: t }: { test: SkillTest }) {
         </div>
       )}
     </li>
+  );
+}
+
+function CredentialPhotosManager({
+  profileId,
+  photos,
+  onChange,
+}: {
+  profileId: string;
+  photos: CredentialPhoto[];
+  onChange: (next: CredentialPhoto[]) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [label, setLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<CredentialPhoto | null>(null);
+
+  async function handleFile(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    if (!isImage && !isPdf) {
+      setErr('Only images and PDFs are supported.');
+      return;
+    }
+    if (file.size > 16 * 1024 * 1024) {
+      setErr('File too large (max 16 MB).');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const created = await uploadCredentialPhoto(profileId, file, label);
+      onChange([created, ...photos]);
+      setLabel('');
+      if (fileRef.current) fileRef.current.value = '';
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(
+        /bucket not found/i.test(msg)
+          ? 'Storage bucket "credential-photos" not found. Create it in Supabase (see supabase/schema.sql).'
+          : msg,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(photo: CredentialPhoto) {
+    if (!confirm('Delete this credential photo?')) return;
+    setBusy(true);
+    try {
+      await deleteCredentialPhoto(photo);
+      onChange(photos.filter((p) => p.id !== photo.id));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-cyan-electric/20 bg-navy-deep/40 p-4 space-y-3">
+        <p className="text-xs text-slate-400 font-mono leading-relaxed">
+          Upload images or PDFs of diplomas, licenses, certificates, or other
+          off-platform proof. They appear on your public profile.
+        </p>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Optional label (e.g. MD diploma, Stanford 2018)"
+          maxLength={140}
+          className="w-full bg-navy border border-cyan-electric/30 text-white font-mono px-3 py-2 rounded text-sm focus:outline-none focus:border-cyan-electric transition"
+        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
+            className="text-xs text-slate-400 font-mono file:mr-3 file:px-4 file:py-2 file:rounded-full file:border-0 file:bg-cyan-electric file:text-navy-deep file:font-semibold file:cursor-pointer hover:file:shadow-glow"
+          />
+          {busy && <span className="text-xs text-cyan-electric font-mono animate-pulse">Uploading…</span>}
+        </div>
+        {err && <div className="text-xs text-red-300 font-mono">{err}</div>}
+      </div>
+
+      {photos.length === 0 ? (
+        <div className="rounded-lg border border-cyan-electric/10 bg-navy-deep/40 px-4 py-6 text-center text-slate-400 text-sm">
+          No credential photos uploaded yet.
+        </div>
+      ) : (
+        <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {photos.map((p) => {
+            const pdf = isPdfUrl(p.photo_url);
+            return (
+              <li
+                key={p.id}
+                className="rounded-lg border border-cyan-electric/20 bg-black/30 overflow-hidden group relative"
+              >
+                {pdf ? (
+                  <a
+                    href={p.photo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full aspect-square bg-gradient-to-br from-navy-deep to-black hover:from-cyan-electric/10 transition"
+                    title="Open PDF"
+                  >
+                    <PdfIcon />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLightbox(p)}
+                    className="block w-full aspect-square overflow-hidden"
+                  >
+                    <img
+                      src={p.photo_url}
+                      alt={p.label ?? 'credential'}
+                      className="w-full h-full object-cover group-hover:opacity-90 transition"
+                    />
+                  </button>
+                )}
+                <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                  <div className="text-[11px] font-mono text-slate-300 truncate" title={p.label ?? ''}>
+                    {p.label || (pdf ? 'PDF' : 'Untitled')}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p)}
+                    disabled={busy}
+                    title="Delete"
+                    className="text-red-300/70 hover:text-red-300 text-xs font-mono disabled:opacity-40"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <div className="max-w-3xl w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightbox.photo_url}
+              alt={lightbox.label ?? ''}
+              className="w-full max-h-[80vh] object-contain rounded-lg border border-cyan-electric/30 bg-black"
+            />
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <div className="font-mono text-cyan-electric">{lightbox.label || 'Untitled'}</div>
+              <button
+                onClick={() => setLightbox(null)}
+                className="px-4 py-1.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-xs hover:bg-cyan-electric/10"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isPdfUrl(url: string): boolean {
+  try {
+    return /\.pdf(?:$|\?)/i.test(new URL(url).pathname);
+  } catch {
+    return /\.pdf$/i.test(url);
+  }
+}
+
+function PdfIcon() {
+  return (
+    <div className="flex flex-col items-center gap-1 text-cyan-electric">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="w-10 h-10">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="font-mono text-[10px] tracking-widest">PDF</span>
+    </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { loadPassport, type StoredPassport } from '../lib/biometric';
-import { getProfile, listCredentialsFor, listVouchesFor } from '../lib/db';
+import { loadPassport, savePassport, type StoredPassport } from '../lib/biometric';
+import { getProfile, getProfileByUserId, listCredentialsFor, listVouchesFor } from '../lib/db';
 import type { Credential, Profile, VouchWithVoucher } from '../lib/types';
+import { useAuth } from './useAuth';
 
 interface UserState {
   passport: StoredPassport | null;
@@ -14,6 +15,7 @@ interface UserState {
 }
 
 export function useUser(): UserState {
+  const { session, loading: authLoading } = useAuth();
   const [passport, setPassport] = useState<StoredPassport | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
@@ -22,28 +24,58 @@ export function useUser(): UserState {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const p = loadPassport();
-    setPassport(p);
     setError(null);
-    if (!p?.profileId) {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
+    // No session = no identity. The local passport alone isn't enough — it
+    // belongs to *some* account, and without a sign-in we don't know which.
+    if (!session) {
+      setPassport(null);
       setProfile(null);
       setVouches([]);
       setCredentials([]);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     try {
-      const [prof, v, c] = await Promise.all([
-        getProfile(p.profileId),
-        listVouchesFor(p.profileId),
-        listCredentialsFor(p.profileId),
-      ]);
+      const prof = await getProfileByUserId(session.user.id);
       if (!prof) {
-        setError(
-          `Profile ${p.profileId} not found in Supabase. Either the schema isn't applied, RLS is blocking reads, or this profile was created against a different project.`,
-        );
+        // Signed-in account hasn't registered a card yet.
+        setPassport(null);
+        setProfile(null);
+        setVouches([]);
+        setCredentials([]);
+        return;
       }
+
+      // Reconcile the local passport with the signed-in account. If the
+      // cached passport points at a different profile, throw it away — it
+      // belongs to another account that was previously signed in here.
+      const cached = loadPassport();
+      const cachedMatches = cached?.profileId === prof.id;
+      const livePassport: StoredPassport = cachedMatches
+        ? (cached as StoredPassport)
+        : {
+            profileId: prof.id,
+            source: 'face',
+            handle: prof.handle,
+            hash: prof.face_hash,
+            embedding: prof.face_embedding,
+            photo: prof.photo ?? undefined,
+            createdAt: new Date(prof.created_at).getTime(),
+          };
+      if (!cachedMatches) savePassport(livePassport);
+      setPassport(livePassport);
+
+      const [v, c] = await Promise.all([
+        listVouchesFor(prof.id),
+        listCredentialsFor(prof.id),
+      ]);
       setProfile(prof);
       setVouches(v);
       setCredentials(c);
@@ -59,7 +91,7 @@ export function useUser(): UserState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authLoading, session]);
 
   useEffect(() => {
     refresh();

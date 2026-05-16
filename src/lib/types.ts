@@ -62,6 +62,14 @@ export interface Credential {
   revoked: boolean;
 }
 
+export interface CredentialPhoto {
+  id: string;
+  profile_id: string;
+  label: string | null;
+  photo_url: string;
+  created_at: string;
+}
+
 export const VOUCH_SKILLS = [
   'Medicine',
   'Surgery',

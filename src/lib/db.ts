@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type {
   Credential,
+  CredentialPhoto,
   Profile,
   SkillReview,
   SkillTest,
@@ -38,6 +39,16 @@ export async function getProfile(id: string): Promise<Profile | null> {
     .from('profiles')
     .select('*')
     .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Profile | null;
+}
+
+export async function getProfileByUserId(user_id: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user_id)
     .maybeSingle();
   if (error) throw error;
   return data as Profile | null;
@@ -207,6 +218,53 @@ export async function setTestStatus(test_id: string, status: SkillTestStatus): P
     .update({ status })
     .eq('id', test_id);
   if (error) throw error;
+}
+
+export async function listCredentialPhotos(profile_id: string): Promise<CredentialPhoto[]> {
+  const { data, error } = await supabase
+    .from('credential_photos')
+    .select('*')
+    .eq('profile_id', profile_id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as CredentialPhoto[];
+}
+
+export async function uploadCredentialPhoto(
+  profile_id: string,
+  file: File,
+  label?: string,
+): Promise<CredentialPhoto> {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `${profile_id}/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from('credential-photos')
+    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+  if (upErr) throw upErr;
+  const { data: urlData } = supabase.storage.from('credential-photos').getPublicUrl(path);
+  const { data, error } = await supabase
+    .from('credential_photos')
+    .insert({ profile_id, photo_url: urlData.publicUrl, label: label?.trim() || null })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CredentialPhoto;
+}
+
+export async function deleteCredentialPhoto(photo: CredentialPhoto): Promise<void> {
+  const { error } = await supabase.from('credential_photos').delete().eq('id', photo.id);
+  if (error) throw error;
+  try {
+    const url = new URL(photo.photo_url);
+    const marker = '/credential-photos/';
+    const idx = url.pathname.indexOf(marker);
+    if (idx >= 0) {
+      const storagePath = url.pathname.slice(idx + marker.length);
+      await supabase.storage.from('credential-photos').remove([storagePath]);
+    }
+  } catch (e) {
+    console.warn('failed to remove storage object for credential photo', e);
+  }
 }
 
 export async function listCredentialsFor(holder_id: string): Promise<Credential[]> {

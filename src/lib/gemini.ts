@@ -26,6 +26,8 @@ async function callWithRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> 
 }
 
 export async function generateSkillScenario(skill: string): Promise<string> {
+  const pinned = pinnedScenario(skill);
+  if (pinned) return pinned;
   if (!gemini) return fallbackScenario(skill);
   const model = gemini.getGenerativeModel({ model: MODEL });
   const prompt = `You are writing a single live-assessment scenario for a candidate who claims this skill:
@@ -133,6 +135,18 @@ function fallbackGrade(answer: string, reason = 'no key'): AiGrade {
       ? 'Gemini key not set — grading by answer length. Set VITE_GEMINI_API_KEY for real grading.'
       : `Gemini API call failed — grading by answer length. Check browser console for details.`,
   };
+}
+
+// Demo-day pin: when the candidate enters one of these skills, we skip the
+// LLM and return a fixed scenario so the presenter can rehearse a clean answer.
+// Match is case- and whitespace-insensitive.
+function pinnedScenario(skill: string): string | null {
+  const key = skill.trim().toLowerCase().replace(/\s+/g, ' ');
+  const pinned: Record<string, string> = {
+    'basic math tutor':
+      "You're tutoring an 11-year-old who insists that 1/3 + 1/4 = 2/7 because \"you add the tops and add the bottoms.\" They've gotten the same wrong answer on three homework questions and are getting frustrated. Walk through exactly what you say and do in the next two minutes to fix the misconception — not just give them the right answer, but make them see why their rule is wrong and what the correct rule is.",
+  };
+  return pinned[key] ?? null;
 }
 
 function fallbackScenario(skill: string): string {

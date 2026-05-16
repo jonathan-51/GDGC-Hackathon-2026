@@ -7,12 +7,16 @@ create extension if not exists "pgcrypto";
 -- embedding and the local passport in their browser. handle is human-readable.
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid unique references auth.users(id) on delete cascade,
   handle text unique not null,
   face_hash text not null,
   face_embedding double precision[] not null,
   photo text,
   created_at timestamptz not null default now()
 );
+
+-- If profiles already existed before adding accounts, run:
+-- alter table profiles add column if not exists user_id uuid unique references auth.users(id) on delete cascade;
 
 -- A vouch: voucher signs that vouchee is real / known to them.
 create table if not exists vouches (
@@ -57,6 +61,22 @@ create table if not exists skill_tests (
 create index if not exists skill_tests_status_idx on skill_tests(status);
 create index if not exists skill_tests_skill_idx on skill_tests(skill);
 
+-- User-uploaded photos of off-platform credentials (diplomas, licenses, etc).
+create table if not exists credential_photos (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  label text,
+  photo_url text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists credential_photos_profile_idx on credential_photos(profile_id);
+
+-- Run in Supabase Storage to enable credential photo uploads:
+-- insert into storage.buckets (id, name, public) values ('credential-photos', 'credential-photos', true) on conflict do nothing;
+-- create policy "open upload credential-photos" on storage.objects for insert with check (bucket_id = 'credential-photos');
+-- create policy "open read credential-photos" on storage.objects for select using (bucket_id = 'credential-photos');
+-- create policy "open delete credential-photos" on storage.objects for delete using (bucket_id = 'credential-photos');
+
 -- A peer review of a skill test.
 create table if not exists skill_reviews (
   id uuid primary key default gen_random_uuid(),
@@ -87,6 +107,7 @@ alter table vouches enable row level security;
 alter table skill_tests enable row level security;
 alter table skill_reviews enable row level security;
 alter table credentials enable row level security;
+alter table credential_photos enable row level security;
 
 do $$ begin
   create policy "open read profiles" on profiles for select using (true);
@@ -114,4 +135,10 @@ do $$ begin
   create policy "open read credentials" on credentials for select using (true);
   create policy "open write credentials" on credentials for insert with check (true);
   create policy "open update credentials" on credentials for update using (true);
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create policy "open read credential_photos" on credential_photos for select using (true);
+  create policy "open write credential_photos" on credential_photos for insert with check (true);
+  create policy "open delete credential_photos" on credential_photos for delete using (true);
 exception when duplicate_object then null; end $$;

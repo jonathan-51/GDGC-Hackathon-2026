@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import {
   captureVideoFrame,
   clearPassport,
@@ -16,10 +17,12 @@ import {
 import { platformAuthenticatorAvailable, registerPlatformBiometric, identifyHardwareWitness } from '../lib/webauthn';
 import HardwareWitnessBox from '../components/HardwareWitnessBox';
 import { supabase } from '../lib/supabase';
+import { getProfileByHandle, getProfileByUserId } from '../lib/db';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
 
 export default function Register() {
+  const { session, loading: authLoading } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -96,17 +99,33 @@ export default function Register() {
     setStage('syncing');
     const trimmed = handle.trim();
     try {
+      if (!session) throw new Error('You must be signed in to create a profile.');
+
+      // One account = one profile. If this account already has one, refuse
+      // to create another — even if the handle differs.
+      const existing = await getProfileByUserId(session.user.id);
+      if (existing) {
+        throw new Error(
+          `This account already owns @${existing.handle}. Sign out and use a different account to create a new card.`,
+        );
+      }
+
+      // Reject if the handle is already taken by some other account, instead
+      // of silently overwriting their row (the old upsert bug).
+      const handleOwner = await getProfileByHandle(trimmed);
+      if (handleOwner) {
+        throw new Error(`Handle @${trimmed} is already taken. Pick another.`);
+      }
+
       const { data: profile, error: dbError } = await supabase
         .from('profiles')
-        .upsert(
-          {
-            handle: trimmed,
-            face_hash: input.hash,
-            face_embedding: input.embedding,
-            ...(input.photo ? { photo: input.photo } : {}),
-          },
-          { onConflict: 'handle' },
-        )
+        .insert({
+          user_id: session.user.id,
+          handle: trimmed,
+          face_hash: input.hash,
+          face_embedding: input.embedding,
+          ...(input.photo ? { photo: input.photo } : {}),
+        })
         .select()
         .single();
       if (dbError) throw dbError;
@@ -181,6 +200,13 @@ export default function Register() {
     setHandle('');
     setStage('idle');
     setError(null);
+  }
+
+  if (authLoading) {
+    return <div className="text-slate-400 font-mono">Loading…</div>;
+  }
+  if (!session) {
+    return <Navigate to="/auth" replace state={{ from: '/register' }} />;
   }
 
   if (stage === 'done' && passport) {
