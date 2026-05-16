@@ -65,7 +65,7 @@ export default function Home() {
       <HeroBackground />
 
       {/* HERO */}
-      <section className="max-w-7xl mx-auto px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-10 items-center relative">
+      <section className="max-w-7xl mx-auto px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-10 items-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -99,7 +99,7 @@ export default function Home() {
       </section>
 
       {/* THREE PILLARS */}
-      <section id="how" className="max-w-7xl mx-auto px-6 pb-20 relative">
+      <section id="how" className="max-w-7xl mx-auto px-6 pb-20 relative z-10">
         <h2 className="text-3xl md:text-4xl font-mono font-bold text-center text-white mb-10">
           The Three Pillars of Trust
         </h2>
@@ -123,7 +123,7 @@ export default function Home() {
       </section>
 
       {/* THE ILLUME CREDENTIAL */}
-      <section className="max-w-7xl mx-auto px-6 pb-24 relative">
+      <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10">
         <h2 className="text-3xl md:text-4xl font-mono font-bold text-center text-white mb-12">
           The Illume Credential
         </h2>
@@ -151,7 +151,7 @@ export default function Home() {
 // ---------------------------------------------------------------------------
 function HeroBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       {/* gold glow blobs */}
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#E6B347]/8 rounded-full blur-[120px]" />
       <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-[#C7A97A]/6 rounded-full blur-[80px]" />
@@ -178,27 +178,64 @@ function HeroBackground() {
         </svg>
       </div>
 
-      {/* cross / star decorators */}
-      <CrossStar x="8%" y="30%" size={22} />
-      <CrossStar x="92%" y="15%" size={18} />
-      <CrossStar x="85%" y="65%" size={14} />
+      {/* scattered gold starfield — lights illuminating the darkness */}
+      <Starfield count={90} />
     </div>
   );
 }
 
-function CrossStar({ x, y, size }: { x: string; y: string; size: number }) {
+// Deterministic seeded scatter so the layout is stable across renders but
+// still looks irregular. Stars twinkle on staggered keyframes.
+function Starfield({ count }: { count: number }) {
+  const stars = [];
+  let seed = 0x9e3779b1;
+  const rand = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = 0; i < count; i++) {
+    const left = rand() * 100;
+    const top = rand() * 100;
+    const size = 1 + rand() * 2.2;
+    const baseOpacity = 0.3 + rand() * 0.55;
+    const duration = 2.5 + rand() * 4.5;
+    const delay = rand() * 5;
+    const bright = rand() > 0.85;
+    stars.push(
+      <span
+        key={i}
+        className="illume-star"
+        style={{
+          left: `${left}%`,
+          top: `${top}%`,
+          width: `${size}px`,
+          height: `${size}px`,
+          background: bright ? '#FFF1C2' : '#E6B347',
+          boxShadow: `0 0 ${size * 3}px ${bright ? '#F2DDA4' : '#E6B347'}`,
+          opacity: baseOpacity,
+          animation: `illume-twinkle ${duration}s ease-in-out ${delay}s infinite`,
+        }}
+      />,
+    );
+  }
   return (
-    <svg
-      style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)' }}
-      width={size * 2}
-      height={size * 2}
-      viewBox="-1 -1 2 2"
-    >
-      <line x1="-1" y1="0" x2="1" y2="0" stroke="#E6B347" strokeWidth="0.18" strokeLinecap="round" />
-      <line x1="0" y1="-1" x2="0" y2="1" stroke="#E6B347" strokeWidth="0.18" strokeLinecap="round" />
-      <line x1="-0.7" y1="-0.7" x2="0.7" y2="0.7" stroke="#E6B347" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
-      <line x1="0.7" y1="-0.7" x2="-0.7" y2="0.7" stroke="#E6B347" strokeWidth="0.08" strokeLinecap="round" strokeOpacity="0.5" />
-    </svg>
+    <div className="absolute inset-0">
+      <style>{`
+        .illume-star {
+          position: absolute;
+          border-radius: 9999px;
+          will-change: opacity, transform;
+        }
+        @keyframes illume-twinkle {
+          0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
+          50%      { opacity: 1; transform: scale(1.6); }
+        }
+      `}</style>
+      {stars}
+    </div>
   );
 }
 
