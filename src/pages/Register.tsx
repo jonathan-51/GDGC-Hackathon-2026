@@ -15,7 +15,6 @@ import {
   platformAuthenticatorAvailable,
   registerPlatformBiometric,
 } from '../lib/webauthn';
-import { supabase } from '../lib/supabase';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
 
@@ -85,48 +84,26 @@ export default function Register() {
     }
   }
 
-  async function finalize(input: {
+  function finalize(input: {
     hash: string;
     embedding: number[];
     source: 'face' | 'platform';
   }) {
     setStage('syncing');
     const trimmed = handle.trim();
-    try {
-      // Upsert by handle. Same handle → overwrite face_hash + embedding on
-      // the existing row. New handle → fresh insert.
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            handle: trimmed,
-            face_hash: input.hash,
-            face_embedding: input.embedding,
-          },
-          { onConflict: 'handle' },
-        )
-        .select()
-        .single();
-      if (error) throw error;
-
-      const newPassport: StoredPassport = {
-        profileId: profile.id,
-        source: input.source,
-        handle: profile.handle,
-        hash: input.hash,
-        embedding: input.embedding,
-        createdAt: Date.now(),
-      };
-      savePassport(newPassport);
-      setPassport(newPassport);
-      stopCamera();
-      setStage('done');
-    } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : 'Sync to Supabase failed.';
-      setError(`${msg}. Check that the schema has been applied.`);
-      setStage(input.source === 'face' ? 'camera-on' : 'idle');
-    }
+    // Store passport locally — no cloud sync needed for the demo
+    const newPassport: StoredPassport = {
+      profileId: crypto.randomUUID(),
+      source: input.source,
+      handle: trimmed,
+      hash: input.hash,
+      embedding: input.embedding,
+      createdAt: Date.now(),
+    };
+    savePassport(newPassport);
+    setPassport(newPassport);
+    stopCamera();
+    setStage('done');
   }
 
   async function capture() {
@@ -139,7 +116,7 @@ export default function Register() {
         return;
       }
       const hash = await hashEmbedding(embedding);
-      await finalize({ hash, embedding: Array.from(embedding), source: 'face' });
+      finalize({ hash, embedding: Array.from(embedding), source: 'face' });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Capture failed.');
@@ -161,7 +138,7 @@ export default function Register() {
         setStage('idle');
         return;
       }
-      await finalize({ hash: result.hash, embedding: [], source: 'platform' });
+      finalize({ hash: result.hash, embedding: [], source: 'platform' });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Device biometric failed.');
