@@ -218,10 +218,25 @@ export default function SkillTest() {
         const { url, error: uploadErr } = await uploadInterviewVideo(videoBlob, test.id);
         if (url) {
           setVideoUrl(url);
-          await supabase.from('skill_tests').update({ video_url: url }).eq('id', test.id);
+          const { error: updateErr } = await supabase
+            .from('skill_tests')
+            .update({ video_url: url })
+            .eq('id', test.id);
+          if (updateErr) {
+            console.error('[SkillTest] failed to write video_url to skill_tests:', updateErr);
+            if (/column .*video_url.* does not exist/i.test(updateErr.message)) {
+              console.error(
+                '[SkillTest] Run this in Supabase SQL editor: alter table skill_tests add column if not exists video_url text;',
+              );
+            }
+          }
         } else if (uploadErr) {
-          console.error('[SkillTest] video upload failed:', uploadErr);
-          setError(`Video upload failed: ${uploadErr}`);
+          console.warn('[SkillTest] video upload skipped:', uploadErr);
+          if (/bucket not found/i.test(uploadErr)) {
+            console.warn(
+              '[SkillTest] Create the "interview-videos" bucket in Supabase Storage (see supabase/schema.sql).',
+            );
+          }
         }
       }
 

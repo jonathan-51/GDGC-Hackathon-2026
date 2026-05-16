@@ -6,7 +6,24 @@ export const geminiEnabled = !!apiKey;
 
 const gemini = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-2.5-flash';
+
+async function callWithRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/\b429\b|quota|rate/i.test(msg)) throw e;
+      const match = msg.match(/retry in ([\d.]+)s/i);
+      const delay = match ? Math.min(15000, Math.ceil(parseFloat(match[1]) * 1000) + 250) : 1500 * (i + 1);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
 
 export async function generateSkillScenario(skill: string): Promise<string> {
   if (!gemini) return fallbackScenario(skill);
@@ -30,7 +47,7 @@ Constraints:
 
 Return only the scenario text.`;
   try {
-    const res = await model.generateContent(prompt);
+    const res = await callWithRetry(() => model.generateContent(prompt));
     const text = res.response.text().trim();
     return text || fallbackScenario(skill);
   } catch (e) {
@@ -79,7 +96,7 @@ Verdict rules:
 - "reject": wrong, dangerous, vague to the point of uselessness, or shows the candidate doesn't actually know the skill they claim.
 - "borderline": right idea but missing important steps, partially correct, or correct but at a lower level of skill than claimed.`;
   try {
-    const res = await model.generateContent(prompt);
+    const res = await callWithRetry(() => model.generateContent(prompt));
     const raw = res.response.text().trim();
     const parsed = JSON.parse(raw) as Partial<AiGrade>;
     const score = clampScore(parsed.score);
