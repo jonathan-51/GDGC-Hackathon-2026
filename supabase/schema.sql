@@ -28,7 +28,7 @@ create table if not exists vouches (
 create index if not exists vouches_vouchee_idx on vouches(vouchee_id);
 create index if not exists vouches_voucher_idx on vouches(voucher_id);
 
--- A live skill test: AI-generated scenario, candidate's timed answer.
+-- A live skill test: AI-generated scenario, candidate's spoken answer + interview video.
 create table if not exists skill_tests (
   id uuid primary key default gen_random_uuid(),
   candidate_id uuid not null references profiles(id) on delete cascade,
@@ -36,12 +36,24 @@ create table if not exists skill_tests (
   question text not null,
   answer text not null,
   duration_seconds int,
+  video_url text,
   status text not null default 'pending' check (status in ('pending','approved','rejected')),
   ai_score int check (ai_score is null or (ai_score between 0 and 100)),
   ai_verdict text check (ai_verdict is null or ai_verdict in ('approve','reject','borderline')),
   ai_rationale text,
   created_at timestamptz not null default now()
 );
+
+-- Run these in the Supabase dashboard → Storage to enable interview video uploads:
+-- 1. Create a bucket named "interview-videos" and set it to PUBLIC.
+-- 2. Add a storage policy: allow insert for all (anon) on interview-videos.
+-- Or run:
+-- insert into storage.buckets (id, name, public) values ('interview-videos', 'interview-videos', true) on conflict do nothing;
+-- create policy "open upload interview-videos" on storage.objects for insert with check (bucket_id = 'interview-videos');
+-- create policy "open read interview-videos" on storage.objects for select using (bucket_id = 'interview-videos');
+
+-- If adding video_url to an existing table run:
+-- alter table skill_tests add column if not exists video_url text;
 create index if not exists skill_tests_status_idx on skill_tests(status);
 create index if not exists skill_tests_skill_idx on skill_tests(skill);
 

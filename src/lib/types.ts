@@ -31,6 +31,7 @@ export interface SkillTest {
   question: string;
   answer: string;
   duration_seconds: number | null;
+  video_url: string | null;
   status: SkillTestStatus;
   ai_score: number | null;
   ai_verdict: AiVerdict | null;

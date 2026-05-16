@@ -5,15 +5,17 @@ import { motion } from 'framer-motion';
 import {
   getProfileByHandle,
   listCredentialsFor,
+  listTestsForCandidate,
   listVouchesFor,
 } from '../lib/db';
-import type { Credential, Profile, VouchWithVoucher } from '../lib/types';
+import type { Credential, Profile, SkillTest, VouchWithVoucher } from '../lib/types';
 
 export default function PublicProfile() {
   const { handle = '' } = useParams<{ handle: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [interviews, setInterviews] = useState<SkillTest[]>([]);
   const [qr, setQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export default function PublicProfile() {
     setProfile(null);
     setVouches([]);
     setCredentials([]);
+    setInterviews([]);
     setQr(null);
 
     (async () => {
@@ -37,9 +40,10 @@ export default function PublicProfile() {
           return;
         }
         setProfile(p);
-        const [v, c, qrUrl] = await Promise.all([
+        const [v, c, tests, qrUrl] = await Promise.all([
           listVouchesFor(p.id),
           listCredentialsFor(p.id),
+          listTestsForCandidate(p.id),
           QRCode.toDataURL(
             JSON.stringify({ h: p.handle, id: p.face_hash, pid: p.id }),
             { width: 240, margin: 1, color: { dark: '#0a0e27', light: '#00ffd1' } },
@@ -48,6 +52,7 @@ export default function PublicProfile() {
         if (cancelled) return;
         setVouches(v);
         setCredentials(c);
+        setInterviews(tests.filter((t) => t.video_url));
         setQr(qrUrl);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -176,6 +181,35 @@ export default function PublicProfile() {
           </ul>
         )}
       </Section>
+
+      {interviews.length > 0 && (
+        <Section title="Interview recordings">
+          <div className="space-y-4">
+            {interviews.map((t) => (
+              <div key={t.id} className="rounded-xl border border-cyan-electric/15 bg-navy-deep/60 overflow-hidden">
+                <video
+                  src={t.video_url!}
+                  controls
+                  className="w-full bg-black"
+                />
+                <div className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-mono text-sm text-cyan-electric">{t.skill}</div>
+                    <div className="text-xs text-slate-500 font-mono mt-0.5">
+                      {new Date(t.created_at).toLocaleDateString()} ·{' '}
+                      <span className={
+                        t.status === 'approved' ? 'text-cyan-electric' :
+                        t.status === 'rejected' ? 'text-red-300' : 'text-amber-200'
+                      }>{t.status}</span>
+                      {t.ai_score !== null && <> · AI {t.ai_score}/100</>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
     </div>
   );
 }

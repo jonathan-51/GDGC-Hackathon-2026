@@ -94,6 +94,7 @@ export async function createSkillTest(input: {
   question: string;
   answer: string;
   duration_seconds: number;
+  video_url?: string;
   ai_score?: number;
   ai_verdict?: 'approve' | 'reject' | 'borderline';
   ai_rationale?: string;
