@@ -60,7 +60,7 @@ export default function VerifyAndScan() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <header>
-        <h2 className="text-4xl font-mono font-bold text-blue-400">Verify &amp; Scan</h2>
+        <h2 className="text-4xl font-mono font-bold text-blue-400">Scan &amp; Verify</h2>
       </header>
 
       {/* Tab bar */}

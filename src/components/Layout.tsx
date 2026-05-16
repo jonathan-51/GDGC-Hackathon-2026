@@ -4,7 +4,7 @@ import { signOut, useAuth } from '../hooks/useAuth';
 
 const NAV_LINKS = [
   { label: 'Live Skill Assessment', to: '/skill-test' },
-  { label: 'Verify & Scan', to: '/scan' },
+  { label: 'Scan & Verify', to: '/scan' },
   { label: 'Nearby', to: '/map' },
   { label: 'Review Queue', to: '/review' },
   { label: 'Register', to: '/register' },
