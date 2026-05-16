@@ -97,7 +97,7 @@ export default function QRScanner({ onResult, onError }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="rounded-2xl overflow-hidden border border-cyan-electric/30 bg-black aspect-square max-w-md mx-auto relative">
+      <div className="rounded-2xl overflow-hidden border border-cyan-electric/30 bg-black aspect-square max-w-sm mx-auto relative w-full [&_video]:absolute [&_video]:inset-0 [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
         <div ref={elRef} className="w-full h-full" />
         {status === 'starting' && (
           <div className="absolute inset-0 flex items-center justify-center text-cyan-electric font-mono text-sm animate-pulse pointer-events-none">
