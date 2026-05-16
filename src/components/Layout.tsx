@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { label: 'How it works', to: '/#how' },
   { label: 'Live Skill Assessment', to: '/skill-test' },
   { label: 'Verify Peer', to: '/cosign' },
+  { label: 'Scan Profile', to: '/scan' },
   { label: 'Review Queue', to: '/review' },
   { label: 'Register', to: '/register' },
 ];
@@ -90,6 +91,7 @@ export default function Layout() {
             <Link to="/#how" className="hover:text-white transition-colors">How it works</Link>
             <Link to="/skill-test" className="hover:text-white transition-colors">Live Skill Assessment</Link>
             <Link to="/cosign" className="hover:text-white transition-colors">Verify Peer</Link>
+            <Link to="/scan" className="hover:text-white transition-colors">Scan Profile</Link>
             <Link to="/review" className="hover:text-white transition-colors">Review Queue</Link>
             <Link to="/register" className="hover:text-white transition-colors">Register</Link>
           </div>

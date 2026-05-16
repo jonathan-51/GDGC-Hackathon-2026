@@ -33,6 +33,27 @@ export async function getFaceEmbedding(
   return detection?.descriptor ?? null;
 }
 
+export type FaceSampleResult =
+  | { kind: 'ok'; descriptor: Float32Array }
+  | { kind: 'no-face' }
+  | { kind: 'multiple-faces'; count: number };
+
+// Stricter sample: returns the descriptor only if exactly one face is in
+// frame. Used during verification to defeat the "two heads in the frame"
+// attack where a stranger leans in and the picker silently chooses them.
+export async function getSingleFaceStrict(
+  source: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement,
+): Promise<FaceSampleResult> {
+  await loadFaceModels();
+  const detections = await faceapi
+    .detectAllFaces(source, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+  if (detections.length === 0) return { kind: 'no-face' };
+  if (detections.length > 1) return { kind: 'multiple-faces', count: detections.length };
+  return { kind: 'ok', descriptor: detections[0].descriptor };
+}
+
 export function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
   if (a.length !== b.length) return 0;
   let dot = 0;
@@ -142,4 +163,14 @@ export function clearPassport(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export const MATCH_THRESHOLD = 0.6;
+// Tightened from face-api's default 0.6. At 0.45 we get many fewer false
+// accepts (different people with broadly similar features) at the cost of
+// occasionally rejecting a legitimate match in poor light — verify retries
+// per-frame anyway, so the user just tries again.
+export const MATCH_THRESHOLD = 0.45;
+
+// Number of independent frame samples required during verification, and the
+// number of those samples that must each individually fall under MATCH_THRESHOLD.
+// All-of-N (rather than majority) defeats a stranger who briefly steps into
+// frame and gets one lucky low-distance frame.
+export const VERIFY_FRAMES_REQUIRED = 4;

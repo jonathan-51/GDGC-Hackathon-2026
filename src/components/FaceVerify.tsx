@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   euclideanDistance,
-  getFaceEmbedding,
+  getSingleFaceStrict,
   loadFaceModels,
   MATCH_THRESHOLD,
+  VERIFY_FRAMES_REQUIRED,
   type StoredPassport,
 } from '../lib/biometric';
 import { authenticatePlatformBiometric } from '../lib/webauthn';
@@ -25,6 +26,7 @@ export default function FaceVerify({ passport, onVerified, onCancel, label }: Pr
   const [status, setStatus] = useState<'idle' | 'loading' | 'live' | 'matching' | 'failed' | 'unsupported'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [progress, setProgress] = useState<{ pass: number; total: number } | null>(null);
 
   useEffect(() => {
     if (passport.source === 'platform') return;
@@ -63,25 +65,50 @@ export default function FaceVerify({ passport, onVerified, onCancel, label }: Pr
     if (!videoRef.current) return;
     setStatus('matching');
     setError(null);
+    setDistance(null);
+    setProgress({ pass: 0, total: VERIFY_FRAMES_REQUIRED });
     try {
-      const embedding = await getFaceEmbedding(videoRef.current);
-      if (!embedding) {
-        setError('No face detected. Center your face and try again.');
-        setStatus('live');
-        return;
+      const distances: number[] = [];
+      for (let i = 0; i < VERIFY_FRAMES_REQUIRED; i++) {
+        // Small pause between samples so we capture *different* frames rather
+        // than re-scoring the same frozen image — a single lucky frame
+        // shouldn't be enough to authenticate.
+        if (i > 0) await new Promise((r) => setTimeout(r, 250));
+        const sample = await getSingleFaceStrict(videoRef.current!);
+        if (sample.kind === 'no-face') {
+          setError('No face detected. Center your face and try again.');
+          setStatus('live');
+          setProgress(null);
+          return;
+        }
+        if (sample.kind === 'multiple-faces') {
+          setError(
+            `Multiple faces in frame (${sample.count}). Only the card holder may be visible during verification.`,
+          );
+          setStatus('live');
+          setProgress(null);
+          return;
+        }
+        const d = euclideanDistance(sample.descriptor, passport.embedding);
+        distances.push(d);
+        setDistance(d);
+        if (d > MATCH_THRESHOLD) {
+          setError(
+            `Face does not match passport (distance ${d.toFixed(2)} > ${MATCH_THRESHOLD}). Keep still and try again.`,
+          );
+          setStatus('live');
+          setProgress(null);
+          return;
+        }
+        setProgress({ pass: i + 1, total: VERIFY_FRAMES_REQUIRED });
       }
-      const d = euclideanDistance(embedding, passport.embedding);
-      setDistance(d);
-      if (d <= MATCH_THRESHOLD) {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-        onVerified({ distance: d });
-      } else {
-        setError(`Face does not match passport (distance ${d.toFixed(2)} > ${MATCH_THRESHOLD}).`);
-        setStatus('live');
-      }
+      const worst = Math.max(...distances);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      onVerified({ distance: worst });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Verification failed.');
       setStatus('live');
+      setProgress(null);
     }
   }
 
@@ -152,6 +179,9 @@ export default function FaceVerify({ passport, onVerified, onCancel, label }: Pr
       {distance !== null && (
         <div className="text-xs text-slate-400 font-mono text-center">
           distance {distance.toFixed(3)} / threshold {MATCH_THRESHOLD}
+          {progress && (
+            <> · sample {progress.pass}/{progress.total}</>
+          )}
         </div>
       )}
       {error && <div className="text-red-300 text-sm font-mono text-center">{error}</div>}
@@ -161,7 +191,11 @@ export default function FaceVerify({ passport, onVerified, onCancel, label }: Pr
           disabled={status !== 'live' && status !== 'matching'}
           className="px-6 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold hover:shadow-glow disabled:opacity-40 transition"
         >
-          {status === 'matching' ? 'Matching…' : 'Verify Face'}
+          {status === 'matching'
+            ? progress
+              ? `Matching ${progress.pass}/${progress.total}…`
+              : 'Matching…'
+            : 'Verify Face'}
         </button>
         {onCancel && (
           <button onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-cyan-electric">

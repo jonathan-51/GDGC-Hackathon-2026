@@ -13,7 +13,7 @@ import type { Credential, Profile, SkillTest, VouchWithVoucher } from '../lib/ty
 
 export default function PublicProfile() {
   const { handle = '' } = useParams<{ handle: string }>();
-  const { credentials: viewerCredentials } = useUser();
+  const { profile: viewerProfile, credentials: viewerCredentials } = useUser();
   const viewerSkills = viewerCredentials
     .filter((c) => !c.revoked)
     .map((c) => c.skill.toLowerCase());
@@ -130,6 +130,28 @@ export default function PublicProfile() {
               <Stat label="Vouches" value={vouches.length} />
               <Stat label="Credentials" value={activeCreds.length} />
             </div>
+            {viewerProfile && viewerProfile.id !== profile.id && (() => {
+              const alreadyVouched = vouches.some((v) => v.voucher.id === viewerProfile.id);
+              const params = new URLSearchParams({
+                handle: profile.handle,
+                hash: profile.face_hash,
+                pid: profile.id,
+              });
+              return alreadyVouched ? (
+                <div className="text-xs text-cyan-electric/80 font-mono text-center md:text-left">
+                  ✓ You've already vouched for @{profile.handle}
+                </div>
+              ) : (
+                <div className="flex justify-center md:justify-start">
+                  <Link
+                    to={`/cosign?${params.toString()}`}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold text-sm hover:shadow-glow transition"
+                  >
+                    Vouch for @{profile.handle}
+                  </Link>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </motion.div>

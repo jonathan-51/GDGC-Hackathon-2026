@@ -53,6 +53,23 @@ export async function getProfileByHandle(handle: string): Promise<Profile | null
   return data as Profile | null;
 }
 
+export async function searchProfilesByHandle(
+  query: string,
+  limit = 8,
+): Promise<Pick<Profile, 'id' | 'handle' | 'photo'>[]> {
+  const q = query.trim().replace(/^@/, '');
+  if (!q) return [];
+  const escaped = q.replace(/[%_]/g, '\\$&');
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, handle, photo')
+    .ilike('handle', `%${escaped}%`)
+    .order('handle', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as Pick<Profile, 'id' | 'handle' | 'photo'>[];
+}
+
 export async function getProfileByHash(hash: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
