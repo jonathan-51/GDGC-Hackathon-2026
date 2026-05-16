@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 // --- geodesic sphere geometry (computed once at module level) ---
 type V3 = [number, number, number];
@@ -242,26 +243,51 @@ function Starfield({ count }: { count: number }) {
 // ---------------------------------------------------------------------------
 // Geodesic sphere
 // ---------------------------------------------------------------------------
-function GeodesicSphere() {
-  const W = 420, H = 420;
-  const cx = W / 2, cy = H / 2, r = 175;
-  const rotX = 0.28, rotY = -0.35;
+const ROT_X = 0.28;
+const COS_X = Math.cos(ROT_X), SIN_X = Math.sin(ROT_X);
 
-  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+function computeProjected(rotY: number, cx: number, cy: number, r: number): [number, number, number][] {
   const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-
-  function project(v: V3): [number, number, number] {
+  return GEO_VERTS.map((v) => {
     const x1 = v[0] * cosY + v[2] * sinY;
     const y1 = v[1];
     const z1 = -v[0] * sinY + v[2] * cosY;
-    const y2 = y1 * cosX - z1 * sinX;
-    const z2 = y1 * sinX + z1 * cosX;
+    const y2 = y1 * COS_X - z1 * SIN_X;
+    const z2 = y1 * SIN_X + z1 * COS_X;
     return [cx + x1 * r, cy - y2 * r, z2];
-  }
+  });
+}
 
-  const projected = GEO_VERTS.map(project);
+function GeodesicSphere() {
+  const W = 420, H = 420;
+  const cx = W / 2, cy = H / 2, r = 175;
+  const rotYRef = useRef(-0.35);
+  const rafRef = useRef(0);
+  const [projected, setProjected] = useState<[number, number, number][]>(
+    () => computeProjected(rotYRef.current, cx, cy, r)
+  );
+
+  useEffect(() => {
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      rotYRef.current += dt * 0.18;
+      setProjected(computeProjected(rotYRef.current, cx, cy, r));
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   return (
+    <div style={{ animation: 'sphere-float 5s ease-in-out infinite' }}>
+    <style>{`
+      @keyframes sphere-float {
+        0%, 100% { transform: translateY(0px); }
+        50%       { transform: translateY(-18px); }
+      }
+    `}</style>
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="w-72 h-72 md:w-[420px] md:h-[420px]"
@@ -316,6 +342,7 @@ function GeodesicSphere() {
         );
       })}
     </svg>
+    </div>
   );
 }
 
