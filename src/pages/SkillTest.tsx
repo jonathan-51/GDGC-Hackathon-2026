@@ -106,9 +106,10 @@ export default function SkillTest() {
             Live Skill Assessment
           </h2>
           <p className="text-slate-400">
-            Pick a skill. An AI generates one realistic scenario. You have{' '}
-            {SKILL_TEST_SECONDS} seconds to answer. Already-verified peers in that
-            field review your answer and decide.
+            Describe what you do. Be specific — "Software engineering, embedded C"
+            tests harder than "Engineering". An AI generates one realistic
+            scenario inside that field's actual working context, then you have{' '}
+            {SKILL_TEST_SECONDS} seconds to answer. Peers in the same field review.
           </p>
           {!geminiEnabled && (
             <div className="text-xs text-amber-300/80 font-mono">
@@ -117,20 +118,7 @@ export default function SkillTest() {
             </div>
           )}
         </header>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {VOUCH_SKILLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => start(s)}
-              className="rounded-xl border border-cyan-electric/20 bg-navy-deep/60 p-5 text-left hover:border-cyan-electric/60 hover:shadow-glow transition group"
-            >
-              <div className="text-lg font-mono text-cyan-electric group-hover:text-white transition">
-                {s}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Begin scenario →</div>
-            </button>
-          ))}
-        </div>
+        <SkillEntry onStart={start} />
         {error && (
           <div className="text-red-300 font-mono text-sm">{error}</div>
         )}
@@ -246,6 +234,52 @@ export default function SkillTest() {
           >
             Test another skill
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkillEntry({ onStart }: { onStart: (skill: string) => void }) {
+  const [value, setValue] = useState('');
+  const trimmed = value.trim();
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && trimmed.length >= 3) onStart(trimmed);
+          }}
+          placeholder='e.g. "Software engineering — embedded C"'
+          maxLength={120}
+          autoFocus
+          className="flex-1 bg-navy-deep border border-cyan-electric/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-cyan-electric focus:shadow-glow transition"
+        />
+        <button
+          onClick={() => onStart(trimmed)}
+          disabled={trimmed.length < 3}
+          className="px-6 py-3 rounded-full bg-cyan-electric text-navy-deep font-semibold disabled:opacity-40 hover:shadow-glow transition"
+        >
+          Begin scenario
+        </button>
+      </div>
+      <div className="space-y-2">
+        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono">
+          Or quick-fill
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {VOUCH_SKILLS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setValue(s)}
+              className="px-3 py-1.5 rounded-full border border-cyan-electric/20 text-cyan-electric/80 text-xs font-mono hover:border-cyan-electric hover:text-cyan-electric transition"
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
     </div>

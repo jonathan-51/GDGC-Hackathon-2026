@@ -12,11 +12,22 @@ const MODEL = 'gemini-2.5-flash';
 export async function generateSkillScenario(skill: string): Promise<string> {
   if (!gemini) return fallbackScenario(skill);
   const model = gemini.getGenerativeModel({ model: MODEL });
-  const prompt = `Generate a single, realistic scenario question for someone claiming the skill "${skill}" in a post-collapse world without records, hospitals, or institutions. Constraints:
-- One paragraph, 2–4 sentences.
-- Concrete situation, present tense, ends with a clear decision the candidate must make.
-- No multiple choice, no preamble, no markdown.
-- Test practical judgement, not trivia.
+  const prompt = `You are writing a single live-assessment scenario for a candidate who claims this skill:
+
+"${skill}"
+
+The scenario must sit inside the *actual day-to-day working context* of that skill, NOT a generic survival or post-collapse setting. For example:
+- If the skill is software engineering (any specialisation), the scenario is about code, systems, bugs, design — possibly with concrete snippets, error messages, stack traces.
+- If the skill is C programming, the scenario must involve C: pointers, memory, undefined behaviour, build flags, embedded constraints, etc.
+- If the skill is diesel mechanics, the scenario is about diesel engines.
+- If the skill is paediatric medicine, the scenario is a paediatric case.
+Match the granularity and specialisation in the candidate's wording. A general skill gets a general scenario; a specialised skill gets a specialised one.
+
+Constraints:
+- 2–5 sentences. One paragraph or a short paragraph + a short code/data block if it clarifies.
+- Concrete, present tense. End with the exact decision or output you want the candidate to produce.
+- Test practical professional judgement, not textbook trivia.
+- No preamble, no multiple choice, no markdown headers, no "Scenario:" label. Just the scenario itself.
 
 Return only the scenario text.`;
   try {
@@ -45,7 +56,11 @@ export async function gradeSkillAnswer(
     model: MODEL,
     generationConfig: { responseMimeType: 'application/json' },
   });
-  const prompt = `You are grading a live skill assessment for the credential "${skill}" in a post-collapse world without records or institutions. Be strict but fair: only give an "approve" verdict if the candidate would actually be safe to act on this in the field.
+  const prompt = `You are grading a live skill assessment for someone claiming this skill:
+
+"${skill}"
+
+Grade them as a senior practitioner of that exact skill would. If the skill is a specialisation (e.g. "Software engineering — embedded C"), grade against that specialisation's standards, not a generic version.
 
 Scenario:
 ${question}
@@ -61,9 +76,9 @@ Reply with a single JSON object, no markdown, no commentary, matching exactly:
 }
 
 Verdict rules:
-- "approve": clearly correct, safe, demonstrates real practical judgement.
-- "reject": dangerous, vague to the point of uselessness, or factually wrong on something load-bearing.
-- "borderline": partly right but missing critical steps, or right idea but unsafe execution.`;
+- "approve": clearly correct, demonstrates real practical judgement at the claimed level. A peer in the field would trust this person to do this work.
+- "reject": wrong, dangerous, vague to the point of uselessness, or shows the candidate doesn't actually know the skill they claim.
+- "borderline": right idea but missing important steps, partially correct, or correct but at a lower level of skill than claimed.`;
   try {
     const res = await model.generateContent(prompt);
     const raw = res.response.text().trim();

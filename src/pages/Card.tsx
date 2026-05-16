@@ -62,16 +62,25 @@ export default function Card() {
             <div className="w-64 h-64 bg-black/40 rounded-lg" />
           )}
           <div className="flex-1 space-y-4 text-center md:text-left">
-            <div>
-              <div className="text-slate-500 font-mono text-xs uppercase tracking-widest">
-                Identity
-              </div>
-              <div className="text-4xl font-mono font-bold text-cyan-electric mt-1">
-                @{profile.handle}
-              </div>
-              <div className="text-xs text-slate-500 font-mono mt-1">
-                {passport.source === 'platform' ? 'device biometric' : 'face hash'} ·{' '}
-                {passport.hash.slice(0, 16)}…
+            <div className="flex items-center gap-4 justify-center md:justify-start">
+              {profile.photo && (
+                <img
+                  src={profile.photo}
+                  alt={`${profile.handle} portrait`}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-cyan-electric/60 shadow-glow shrink-0"
+                />
+              )}
+              <div>
+                <div className="text-slate-500 font-mono text-xs uppercase tracking-widest">
+                  Identity
+                </div>
+                <div className="text-4xl font-mono font-bold text-cyan-electric mt-1">
+                  @{profile.handle}
+                </div>
+                <div className="text-xs text-slate-500 font-mono mt-1">
+                  {passport.source === 'platform' ? 'device biometric' : 'face hash'} ·{' '}
+                  {passport.hash.slice(0, 16)}…
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">

@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom';
 import FaceVerify from '../components/FaceVerify';
 import { useUser } from '../hooks/useUser';
 import {
-  listPendingTestsForSkill,
+  listAllPendingTests,
   maybeFinalizeTest,
   submitReview,
 } from '../lib/db';
-import { APPROVAL_THRESHOLD, VOUCH_SKILLS } from '../lib/types';
+import { APPROVAL_THRESHOLD } from '../lib/types';
 import type { SkillTestWithCandidate } from '../lib/types';
 
 export default function Review() {
   const { passport, profile, credentials, loading } = useUser();
-  const [skill, setSkill] = useState<string>('');
-  const [tests, setTests] = useState<SkillTestWithCandidate[]>([]);
+  const [filter, setFilter] = useState<string>('');
+  const [allTests, setAllTests] = useState<SkillTestWithCandidate[]>([]);
   const [busy, setBusy] = useState(false);
   const [pendingVerdict, setPendingVerdict] = useState<{
     test: SkillTestWithCandidate;
@@ -23,19 +23,23 @@ export default function Review() {
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
-  // Skills the reviewer is verified in. For demo we also offer "open review"
-  // across all skills so the flow is demonstrable before anyone is credentialed.
   const verifiedSkills = credentials
     .filter((c) => !c.revoked)
-    .map((c) => c.skill);
+    .map((c) => c.skill.toLowerCase());
 
   useEffect(() => {
-    if (!skill || !profile) return;
+    if (!profile) return;
     setError(null);
-    listPendingTestsForSkill(skill, profile.id)
-      .then(setTests)
+    listAllPendingTests(profile.id)
+      .then(setAllTests)
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, [skill, profile]);
+  }, [profile, flash]);
+
+  const tests = filter.trim()
+    ? allTests.filter((t) =>
+        t.skill.toLowerCase().includes(filter.trim().toLowerCase()),
+      )
+    : allTests;
 
   if (loading) {
     return <div className="text-slate-400 font-mono">Loading…</div>;
@@ -70,7 +74,7 @@ export default function Review() {
         notes: notes.trim() || undefined,
       });
       const outcome = await maybeFinalizeTest(test.id, test.candidate.id, test.skill);
-      setTests((cur) => cur.filter((t) => t.id !== test.id));
+      setAllTests((cur) => cur.filter((t) => t.id !== test.id));
       setFlash(
         outcome.finalized
           ? `Threshold reached — test ${outcome.outcome}.`
@@ -104,27 +108,18 @@ export default function Review() {
 
       <div className="space-y-2">
         <label className="block text-sm font-mono text-slate-400 uppercase tracking-widest">
-          Review queue for skill
+          Filter by skill
         </label>
-        <select
-          value={skill}
-          onChange={(e) => setSkill(e.target.value)}
+        <input
+          type="text"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="e.g. Software engineering, Medicine — leave blank for everything"
           className="w-full bg-navy-deep border border-cyan-electric/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-cyan-electric transition"
-        >
-          <option value="">— choose a skill —</option>
-          {VOUCH_SKILLS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-              {verifiedSkills.includes(s) ? ' (you are credentialed)' : ''}
-            </option>
-          ))}
-        </select>
-        {skill && !verifiedSkills.includes(skill) && (
-          <p className="text-xs text-amber-300/80 font-mono">
-            You are not yet credentialed in {skill}. In production, only
-            credentialed peers can review. Open for demo.
-          </p>
-        )}
+        />
+        <div className="text-xs text-slate-500 font-mono">
+          {allTests.length} pending overall · {tests.length} match
+        </div>
       </div>
 
       {error && (
@@ -138,9 +133,11 @@ export default function Review() {
         </div>
       )}
 
-      {skill && tests.length === 0 && (
+      {tests.length === 0 && (
         <div className="rounded-lg border border-cyan-electric/10 bg-navy-deep/40 px-4 py-6 text-center text-slate-400 text-sm">
-          No pending tests in {skill}.
+          {allTests.length === 0
+            ? 'No pending tests in the network right now.'
+            : `Nothing pending matches "${filter}".`}
         </div>
       )}
 
@@ -162,7 +159,20 @@ export default function Review() {
                   )}
                 </div>
               </div>
-              <span className="text-xs font-mono text-slate-400">{t.skill}</span>
+              <span
+                className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                  verifiedSkills.includes(t.skill.toLowerCase())
+                    ? 'border-cyan-electric/50 text-cyan-electric bg-cyan-electric/5'
+                    : 'border-slate-600/40 text-slate-400'
+                }`}
+                title={
+                  verifiedSkills.includes(t.skill.toLowerCase())
+                    ? 'You hold a credential in this exact skill'
+                    : 'You are not credentialed in this skill — production would gate review'
+                }
+              >
+                {t.skill}
+              </span>
             </div>
             <div className="space-y-3">
               <div>

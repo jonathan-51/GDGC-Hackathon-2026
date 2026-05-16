@@ -87,7 +87,28 @@ export interface StoredPassport {
   hash: string;
   // Empty array for platform (WebAuthn) source; face embedding for camera source.
   embedding: number[];
+  // Data URL of a compressed still captured at registration time (face source only).
+  photo?: string;
   createdAt: number;
+}
+
+// Snapshot a video frame, scale down, and return a JPEG data URL.
+export function captureVideoFrame(
+  video: HTMLVideoElement,
+  maxSize = 320,
+  quality = 0.75,
+): string | null {
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (!w || !h) return null;
+  const scale = Math.min(1, maxSize / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(w * scale);
+  canvas.height = Math.round(h * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
 }
 
 export function savePassport(passport: StoredPassport): void {

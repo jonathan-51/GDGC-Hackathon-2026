@@ -89,6 +89,20 @@ export async function createSkillTest(input: {
   return data as SkillTest;
 }
 
+export async function listAllPendingTests(
+  excludeCandidateId?: string,
+): Promise<SkillTestWithCandidate[]> {
+  let q = supabase
+    .from('skill_tests')
+    .select('*, candidate:candidate_id (id, handle)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (excludeCandidateId) q = q.neq('candidate_id', excludeCandidateId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as SkillTestWithCandidate[];
+}
+
 export async function listPendingTestsForSkill(
   skill: string,
   excludeCandidateId?: string,
