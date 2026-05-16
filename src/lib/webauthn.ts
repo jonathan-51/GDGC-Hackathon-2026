@@ -4,6 +4,31 @@
 // data itself — just an attested credential ID we can hash and treat as a
 // stable anchor.
 
+export type HardwareWitnessIcon = 'fingerprint' | 'faceid' | 'generic';
+
+export interface HardwareWitness {
+  icon: HardwareWitnessIcon;
+  label: string;
+  credentialId?: string;
+}
+
+export function identifyHardwareWitness(credentialId?: string): HardwareWitness {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad/.test(ua)) {
+    return { icon: 'faceid', label: 'Verified via iPhone Face ID', credentialId };
+  }
+  if (/Macintosh|MacIntel/.test(ua)) {
+    return { icon: 'fingerprint', label: 'Verified via MacBook Secure Enclave (Fingerprint)', credentialId };
+  }
+  if (/Android/.test(ua)) {
+    return { icon: 'fingerprint', label: 'Verified via Android Biometric', credentialId };
+  }
+  if (/Windows/.test(ua)) {
+    return { icon: 'generic', label: 'Verified via Windows Hello', credentialId };
+  }
+  return { icon: 'generic', label: 'Verified via Device Biometric', credentialId };
+}
+
 export function webAuthnSupported(): boolean {
   return (
     typeof window !== 'undefined' &&

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import QRScanner from '../components/QRScanner';
 import FaceVerify from '../components/FaceVerify';
+import HardwareWitnessBox from '../components/HardwareWitnessBox';
 import { useUser } from '../hooks/useUser';
 import { createVouch, getProfile, getProfileByHash } from '../lib/db';
+import { identifyHardwareWitness } from '../lib/webauthn';
 import type { Profile } from '../lib/types';
 
 type Stage = 'scan' | 'review' | 'verify' | 'submitting' | 'done' | 'error';
@@ -221,6 +223,11 @@ export default function CoSign() {
           <p className="text-slate-400 text-sm">
             Your signature now appears on their card.
           </p>
+          {passport?.source === 'platform' && (
+            <HardwareWitnessBox
+              witness={identifyHardwareWitness(passport.credentialId)}
+            />
+          )}
           <div className="flex gap-3 justify-center">
             <button
               onClick={reset}

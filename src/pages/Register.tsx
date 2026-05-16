@@ -13,7 +13,8 @@ import {
   savePassport,
   type StoredPassport,
 } from '../lib/biometric';
-import { platformAuthenticatorAvailable, registerPlatformBiometric } from '../lib/webauthn';
+import { platformAuthenticatorAvailable, registerPlatformBiometric, identifyHardwareWitness } from '../lib/webauthn';
+import HardwareWitnessBox from '../components/HardwareWitnessBox';
 import { supabase } from '../lib/supabase';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
@@ -377,6 +378,11 @@ function PassportView({
               {short}…
             </div>
           </div>
+          {passport.source === 'platform' && (
+            <div className="w-full">
+              <HardwareWitnessBox witness={identifyHardwareWitness(passport.credentialId)} />
+            </div>
+          )}
         </div>
       </motion.div>
 
