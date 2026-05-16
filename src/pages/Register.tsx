@@ -5,7 +5,6 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
   captureVideoFrame,
-  clearPassport,
   detectBiometricType,
   euclideanDistance,
   getFaceEmbedding,
@@ -233,15 +232,6 @@ export default function Register() {
     }
   }
 
-  function reset() {
-    clearPassport();
-    setPassport(null);
-    setHandle('');
-    setStage('idle');
-    setError(null);
-    setPlatformPending(null);
-  }
-
   if (authLoading) {
     return <div className="text-slate-400 font-mono">Loading…</div>;
   }
@@ -250,7 +240,7 @@ export default function Register() {
   }
 
   if (stage === 'done' && passport) {
-    return <PassportView passport={passport} qrDataUrl={qrDataUrl} onReset={reset} />;
+    return <PassportView passport={passport} qrDataUrl={qrDataUrl} />;
   }
 
   return (
@@ -405,11 +395,9 @@ export default function Register() {
 function PassportView({
   passport,
   qrDataUrl,
-  onReset,
 }: {
   passport: StoredPassport;
   qrDataUrl: string | null;
-  onReset: () => void;
 }) {
   const short = passport.hash.slice(0, 12).match(/.{1,4}/g)?.join(' ') ?? passport.hash;
   return (
@@ -459,27 +447,12 @@ function PassportView({
       </motion.div>
 
       <div className="flex flex-wrap gap-3 justify-center">
-        {qrDataUrl && (
-          <a
-            href={qrDataUrl}
-            download={`vouch-${passport.handle}.png`}
-            className="px-6 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold hover:shadow-glow transition"
-          >
-            Download QR
-          </a>
-        )}
         <Link
           to="/card"
-          className="px-6 py-2.5 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono hover:bg-cyan-electric/10 transition"
+          className="px-6 py-2.5 rounded-full bg-blue-600 text-white font-semibold hover:bg-blue-500 transition"
         >
-          View full card
+          View my card
         </Link>
-        <button
-          onClick={onReset}
-          className="px-6 py-2.5 rounded-full border border-red-500/40 text-red-300 font-mono hover:bg-red-500/10 transition"
-        >
-          Re-register
-        </button>
       </div>
     </div>
   );
