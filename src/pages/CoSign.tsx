@@ -56,9 +56,11 @@ export default function CoSign() {
   }
 
   async function handleScan(text: string) {
+    console.log('[CoSign] handleScan received', text);
     const parsed = parseQr(text);
+    console.log('[CoSign] parsed', parsed);
     if (!parsed) {
-      setError('That QR code is not a Vouch card.');
+      setError(`That QR is not a Vouch card. Decoded: ${text.slice(0, 80)}`);
       setStage('error');
       return;
     }
@@ -72,14 +74,18 @@ export default function CoSign() {
       const t = parsed.profileId
         ? await getProfile(parsed.profileId)
         : await getProfileByHash(parsed.hash);
+      console.log('[CoSign] profile lookup result', t);
       if (!t) {
-        setError('No matching profile found on the network. Has this person registered?');
+        setError(
+          `No matching profile found on the network. Looked up ${parsed.profileId ? `id ${parsed.profileId}` : `hash ${parsed.hash.slice(0, 12)}…`}.`,
+        );
         setStage('error');
         return;
       }
       setTarget(t);
       setStage('review');
     } catch (e) {
+      console.error('[CoSign] lookup failed', e);
       setError(e instanceof Error ? e.message : 'Lookup failed.');
       setStage('error');
     }

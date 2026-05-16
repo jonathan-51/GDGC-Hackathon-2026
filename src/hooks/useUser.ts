@@ -9,6 +9,7 @@ interface UserState {
   vouches: VouchWithVoucher[];
   credentials: Credential[];
   loading: boolean;
+  error: string | null;
   refresh: () => Promise<void>;
 }
 
@@ -18,10 +19,12 @@ export function useUser(): UserState {
   const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const p = loadPassport();
     setPassport(p);
+    setError(null);
     if (!p?.profileId) {
       setProfile(null);
       setVouches([]);
@@ -36,31 +39,23 @@ export function useUser(): UserState {
         listVouchesFor(p.profileId),
         listCredentialsFor(p.profileId),
       ]);
-      // If Supabase is unavailable, fall back to a local profile built from
-      // the passport so the rest of the app doesn't treat the user as unregistered.
-      setProfile(prof ?? {
-        id: p.profileId,
-        handle: p.handle,
-        face_hash: p.hash,
-        face_embedding: p.embedding,
-        photo: p.photo ?? null,
-        created_at: new Date(p.createdAt).toISOString(),
-      });
+      if (!prof) {
+        setError(
+          `Profile ${p.profileId} not found in Supabase. Either the schema isn't applied, RLS is blocking reads, or this profile was created against a different project.`,
+        );
+      }
+      setProfile(prof);
       setVouches(v);
       setCredentials(c);
     } catch (e) {
       console.error('useUser refresh failed', e);
-      // Still surface a local profile on total failure
-      if (p) {
-        setProfile({
-          id: p.profileId,
-          handle: p.handle,
-          face_hash: p.hash,
-          face_embedding: p.embedding,
-          photo: p.photo ?? null,
-          created_at: new Date(p.createdAt).toISOString(),
-        });
-      }
+      const obj = e as { message?: string; code?: string; details?: string };
+      setError(
+        `Supabase error${obj.code ? ` [${obj.code}]` : ''}: ${obj.message ?? String(e)}${obj.details ? ` — ${obj.details}` : ''}`,
+      );
+      setProfile(null);
+      setVouches([]);
+      setCredentials([]);
     } finally {
       setLoading(false);
     }
@@ -70,5 +65,5 @@ export function useUser(): UserState {
     refresh();
   }, [refresh]);
 
-  return { passport, profile, vouches, credentials, loading, refresh };
+  return { passport, profile, vouches, credentials, loading, error, refresh };
 }

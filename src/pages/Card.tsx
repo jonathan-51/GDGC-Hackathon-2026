@@ -7,7 +7,7 @@ import { listTestsForCandidate } from '../lib/db';
 import type { SkillTest } from '../lib/types';
 
 export default function Card() {
-  const { passport, profile, vouches, credentials, loading, refresh } = useUser();
+  const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
   const [qr, setQr] = useState<string | null>(null);
   const [tests, setTests] = useState<SkillTest[]>([]);
 
@@ -28,7 +28,7 @@ export default function Card() {
     return <div className="text-slate-400 font-mono">Loading your card…</div>;
   }
 
-  if (!passport || !profile) {
+  if (!passport) {
     return (
       <div className="max-w-xl space-y-4">
         <h2 className="text-3xl font-mono text-cyan-electric">No card yet</h2>
@@ -39,6 +39,40 @@ export default function Card() {
         >
           Generate your card
         </Link>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="max-w-xl space-y-4">
+        <h2 className="text-3xl font-mono text-cyan-electric">Card unavailable</h2>
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-200 px-4 py-3 font-mono text-sm">
+          {error ?? 'Could not load your profile from Supabase.'}
+        </div>
+        <p className="text-slate-400 text-sm">
+          Your local passport says you're <span className="text-cyan-electric">@{passport.handle}</span>{' '}
+          (profile id {passport.profileId}). Most likely causes:
+        </p>
+        <ul className="text-slate-400 text-sm list-disc list-inside space-y-1">
+          <li>The schema isn't applied to this Supabase project — run <code className="text-cyan-electric">supabase/schema.sql</code> in the SQL Editor.</li>
+          <li>Your <code className="text-cyan-electric">.env</code> points at a different project than the one you registered against — re-register or fix the env.</li>
+          <li>Row Level Security is blocking reads — re-run <code className="text-cyan-electric">supabase/schema.sql</code>; it sets permissive policies.</li>
+        </ul>
+        <div className="flex gap-3">
+          <button
+            onClick={refresh}
+            className="px-4 py-2 rounded-full border border-cyan-electric/40 text-cyan-electric font-mono text-sm hover:bg-cyan-electric/10"
+          >
+            Retry
+          </button>
+          <Link
+            to="/register"
+            className="px-4 py-2 rounded-full bg-cyan-electric text-navy-deep font-semibold text-sm hover:shadow-glow"
+          >
+            Re-register
+          </Link>
+        </div>
       </div>
     );
   }
