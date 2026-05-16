@@ -21,7 +21,6 @@ export default function Card() {
   const [reviewsByTest, setReviewsByTest] = useState<Record<string, SkillReviewWithReviewer[]>>({});
   const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
 
   useEffect(() => {
     if (!passport) return;
@@ -183,92 +182,6 @@ export default function Card() {
           </div>
         </div>
       </motion.div>
-
-      <div className="flex flex-wrap gap-3 items-center">
-        {/* Primary action */}
-        {qr && (
-          <a
-            href={qr}
-            download={`illume-${passport.handle}.png`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 active:scale-95 transition-all shadow-[0_0_16px_rgba(59,130,246,0.3)]"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-              <path d="M12 15V3M8 11l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M3 21h18" strokeLinecap="round" />
-            </svg>
-            Download QR
-          </a>
-        )}
-
-        {/* Secondary action */}
-        <button
-          onClick={() => setShowQrModal(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-slate-600 text-slate-300 text-sm font-medium hover:border-blue-500/60 hover:text-blue-400 hover:bg-blue-500/5 active:scale-95 transition-all"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <path d="M14 14h2v2h-2zM18 14h3M14 18v3M18 18h3v3h-3z" strokeLinecap="round" />
-          </svg>
-          View full card
-        </button>
-
-        {/* Destructive action — separated */}
-        <Link
-          to="/register"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 text-slate-500 text-sm font-mono hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 active:scale-95 transition-all ml-auto"
-        >
-          Re-register
-        </Link>
-      </div>
-
-      {/* Full card modal */}
-      <AnimatePresence>
-        {showQrModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setShowQrModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="rounded-2xl border border-blue-500/30 bg-navy-deep p-8 flex flex-col items-center gap-6 max-w-sm w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {profile.photo && (
-                <img
-                  src={profile.photo}
-                  alt={profile.handle}
-                  className="w-24 h-24 rounded-full object-cover border-2 border-blue-500/60"
-                />
-              )}
-              {qr ? (
-                <img src={qr} alt="Your Illume QR" className="w-72 h-72 rounded-lg" />
-              ) : (
-                <div className="w-72 h-72 flex items-center justify-center text-slate-500 font-mono">Rendering…</div>
-              )}
-              <div className="text-center space-y-1">
-                <div className="text-2xl font-mono font-bold text-blue-400">@{profile.handle}</div>
-                <div className="text-xs text-slate-500 font-mono">
-                  {passport.source === 'platform' ? 'device biometric' : 'face'} · {passport.hash.slice(0, 16)}…
-                </div>
-              </div>
-              <button
-                onClick={() => setShowQrModal(false)}
-                className="text-slate-400 hover:text-white font-mono text-sm transition"
-              >
-                Close
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <Section title="Vouches">
         {vouches.length === 0 ? (

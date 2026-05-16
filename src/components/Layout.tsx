@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: 'Scan & Verify', to: '/scan' },
   { label: 'Nearby', to: '/map' },
   { label: 'Review Queue', to: '/review' },
+  { label: 'Register', to: '/register' },
 ];
 
 export default function Layout() {
@@ -24,17 +25,13 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-navy text-slate-200 flex flex-col">
       <nav className="border-b border-white/5 bg-navy-deep/90 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center">
-          {/* Left — logo */}
-          <div className="flex-1 flex items-center">
-            <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white shrink-0">
-              <VouchIcon className="w-6 h-6 text-[#F2DDA4]" />
-              <span>Illume</span>
-            </Link>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white shrink-0">
+            <VouchIcon className="w-6 h-6 text-[#F2DDA4]" />
+            <span>Illume</span>
+          </Link>
 
-          {/* Centre — nav links */}
-          <div className="hidden lg:flex items-center gap-2 text-sm text-slate-400">
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-1 text-sm text-slate-400">
             {NAV_LINKS.map((l) => {
               const active = pathname === l.to;
               return (
@@ -53,26 +50,22 @@ export default function Layout() {
             })}
           </div>
 
-          {/* Right — auth + card */}
-          <div className="flex-1 hidden lg:flex items-center justify-end gap-3">
-            {session && (
-              <span className="text-xs text-blue-400/80 font-mono truncate max-w-[140px]" title={username}>
-                @{username}
-              </span>
-            )}
-            <Link
-              to="/card"
-              className="px-4 py-1.5 rounded-full bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 transition-all"
-            >
-              My Card
-            </Link>
+          <div className="hidden lg:flex items-center gap-3 shrink-0 ml-auto">
             {session ? (
-              <button
-                onClick={() => signOut()}
-                className="text-xs font-mono text-slate-300 hover:text-[#F2DDA4] border border-[#E6B347]/30 px-3 py-1.5 rounded-full transition"
-              >
-                Sign out
-              </button>
+              <>
+                <span
+                  className="text-xs text-[#F2DDA4]/80 font-mono truncate max-w-[140px]"
+                  title={username}
+                >
+                  @{username}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-xs font-mono text-slate-300 hover:text-[#F2DDA4] border border-[#E6B347]/30 px-3 py-1.5 rounded-full transition"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/auth?mode=signin" className="text-sm text-slate-300 hover:text-[#F2DDA4] transition-colors">
@@ -86,6 +79,12 @@ export default function Layout() {
                 </Link>
               </>
             )}
+            <Link
+              to="/card"
+              className="px-4 py-1.5 rounded-full bg-[#C7A97A] text-white text-sm font-semibold hover:bg-[#E6B347] transition-all"
+            >
+              My Card
+            </Link>
           </div>
 
           <button
