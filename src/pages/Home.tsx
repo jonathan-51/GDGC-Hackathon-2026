@@ -72,7 +72,7 @@ export default function Home() {
           transition={{ duration: 0.7 }}
         >
           <h1 className="text-5xl md:text-6xl font-mono font-bold leading-tight">
-            <span className="text-cyan-electric">ILLUME:</span>{' '}
+            <span className="text-blue-500">ILLUME:</span>{' '}
             <span className="text-white">Reclaiming<br />trust in a world<br />without records</span>
           </h1>
           <p className="mt-5 text-slate-400 text-sm max-w-md leading-relaxed">
@@ -239,7 +239,7 @@ function GeodesicSphere() {
           </feMerge>
         </filter>
         <radialGradient id="sphereBg" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#1d4ed8" stopOpacity="0.12" />
+          <stop offset="0%" stopColor="#1d4ed8" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#1d4ed8" stopOpacity="0" />
         </radialGradient>
       </defs>
@@ -256,7 +256,7 @@ function GeodesicSphere() {
         return (
           <line
             key={i} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke="#2563eb"
+            stroke="#3b82f6"
             strokeWidth={depth > 0.55 ? 0.9 : 0.5}
             strokeOpacity={Math.max(0.08, Math.min(0.85, op))}
           />
@@ -286,10 +286,10 @@ function GeodesicSphere() {
 // ---------------------------------------------------------------------------
 function PillarCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-2xl bg-gradient-to-b from-blue-900/60 to-navy-deep/80 border border-blue-700/30 p-7 flex flex-col min-h-[260px] hover:border-blue-500/50 transition-all">
+    <div className="rounded-2xl bg-gradient-to-b from-blue-900/60 to-navy-deep/80 border border-blue-700/30 p-7 flex flex-col min-h-[260px] hover:border-blue-600/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] transition-all">
       <h3 className="text-lg font-mono font-bold text-white mb-3">{title}</h3>
       <p className="text-slate-400 text-sm leading-relaxed flex-1">{body}</p>
-      <div className="mt-6 flex justify-end text-blue-400 opacity-80">{icon}</div>
+      <div className="mt-6 flex justify-end text-blue-400 opacity-70">{icon}</div>
     </div>
   );
 }
@@ -351,7 +351,7 @@ function PhoneMockup() {
           <QrPattern />
         </div>
         <div className="text-[10px] font-mono text-slate-400 tracking-widest">SCAN TO VERIFY</div>
-        <div className="text-xs font-mono text-cyan-electric/70">@username</div>
+        <div className="text-xs font-mono text-blue-400/70">@username</div>
       </div>
     </div>
   );
