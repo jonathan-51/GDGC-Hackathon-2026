@@ -35,6 +35,16 @@ export async function getProfile(id: string): Promise<Profile | null> {
   return data as Profile | null;
 }
 
+export async function getProfileByHandle(handle: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('handle', handle)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Profile | null;
+}
+
 export async function getProfileByHash(hash: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')

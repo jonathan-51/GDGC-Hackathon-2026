@@ -149,9 +149,12 @@ export default function Review() {
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
-                <div className="font-mono text-cyan-electric text-lg">
+                <Link
+                  to={`/p/${t.candidate.handle}`}
+                  className="font-mono text-cyan-electric text-lg hover:underline"
+                >
                   @{t.candidate.handle}
-                </div>
+                </Link>
                 <div className="text-xs text-slate-500 font-mono">
                   {new Date(t.created_at).toLocaleString()}
                   {t.duration_seconds != null && (

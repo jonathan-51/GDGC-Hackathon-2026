@@ -1,43 +1,77 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { motion } from 'framer-motion';
-import { useUser } from '../hooks/useUser';
-import { listTestsForCandidate } from '../lib/db';
-import type { SkillTest } from '../lib/types';
+import {
+  getProfileByHandle,
+  listCredentialsFor,
+  listVouchesFor,
+} from '../lib/db';
+import type { Credential, Profile, VouchWithVoucher } from '../lib/types';
 
-export default function Card() {
-  const { passport, profile, vouches, credentials, loading, refresh } = useUser();
+export default function PublicProfile() {
+  const { handle = '' } = useParams<{ handle: string }>();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [vouches, setVouches] = useState<VouchWithVoucher[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [qr, setQr] = useState<string | null>(null);
-  const [tests, setTests] = useState<SkillTest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!passport) return;
-    QRCode.toDataURL(
-      JSON.stringify({ h: passport.handle, id: passport.hash, pid: passport.profileId }),
-      { width: 280, margin: 1, color: { dark: '#0a0e27', light: '#00ffd1' } },
-    ).then(setQr);
-  }, [passport]);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setProfile(null);
+    setVouches([]);
+    setCredentials([]);
+    setQr(null);
 
-  useEffect(() => {
-    if (!profile) return;
-    listTestsForCandidate(profile.id).then(setTests).catch(console.error);
-  }, [profile]);
+    (async () => {
+      try {
+        const p = await getProfileByHandle(handle);
+        if (cancelled) return;
+        if (!p) {
+          setError(`No card found for @${handle}.`);
+          setLoading(false);
+          return;
+        }
+        setProfile(p);
+        const [v, c, qrUrl] = await Promise.all([
+          listVouchesFor(p.id),
+          listCredentialsFor(p.id),
+          QRCode.toDataURL(
+            JSON.stringify({ h: p.handle, id: p.face_hash, pid: p.id }),
+            { width: 240, margin: 1, color: { dark: '#0a0e27', light: '#00ffd1' } },
+          ),
+        ]);
+        if (cancelled) return;
+        setVouches(v);
+        setCredentials(c);
+        setQr(qrUrl);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
 
   if (loading) {
-    return <div className="text-slate-400 font-mono">Loading your card…</div>;
+    return <div className="text-slate-400 font-mono">Looking up @{handle}…</div>;
   }
 
-  if (!passport || !profile) {
+  if (error || !profile) {
     return (
       <div className="max-w-xl space-y-4">
-        <h2 className="text-3xl font-mono text-cyan-electric">No card yet</h2>
-        <p className="text-slate-400">Register first to generate your card.</p>
-        <Link
-          to="/register"
-          className="inline-block px-6 py-2.5 rounded-full bg-cyan-electric text-navy-deep font-semibold hover:shadow-glow transition"
-        >
-          Generate your card
+        <h2 className="text-3xl font-mono text-cyan-electric">@{handle}</h2>
+        <p className="text-red-300 font-mono text-sm">{error}</p>
+        <Link to="/" className="text-cyan-electric font-mono text-sm hover:underline">
+          ← back to home
         </Link>
       </div>
     );
@@ -46,7 +80,6 @@ export default function Card() {
   const activeCreds = credentials.filter(
     (c) => !c.revoked && (!c.expires_at || new Date(c.expires_at) > new Date()),
   );
-  const pendingTests = tests.filter((t) => t.status === 'pending');
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -57,9 +90,9 @@ export default function Card() {
       >
         <div className="flex flex-col md:flex-row gap-8 items-center">
           {qr ? (
-            <img src={qr} alt="Your Vouch QR" className="w-64 h-64 rounded-lg shrink-0" />
+            <img src={qr} alt={`${profile.handle} QR`} className="w-56 h-56 rounded-lg shrink-0" />
           ) : (
-            <div className="w-64 h-64 bg-black/40 rounded-lg" />
+            <div className="w-56 h-56 bg-black/40 rounded-lg" />
           )}
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div className="flex items-center gap-4 justify-center md:justify-start">
@@ -72,32 +105,28 @@ export default function Card() {
               )}
               <div>
                 <div className="text-slate-500 font-mono text-xs uppercase tracking-widest">
-                  Identity
+                  Public card
                 </div>
                 <div className="text-4xl font-mono font-bold text-cyan-electric mt-1">
                   @{profile.handle}
                 </div>
                 <div className="text-xs text-slate-500 font-mono mt-1">
-                  {passport.source === 'platform' ? 'device biometric' : 'face hash'} ·{' '}
-                  {passport.hash.slice(0, 16)}…
+                  joined {new Date(profile.created_at).toLocaleDateString()} ·{' '}
+                  {profile.face_hash.slice(0, 12)}…
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center">
               <Stat label="Vouches" value={vouches.length} />
               <Stat label="Credentials" value={activeCreds.length} />
-              <Stat label="Pending" value={pendingTests.length} />
             </div>
           </div>
         </div>
       </motion.div>
 
-      <Section title="Vouches">
+      <Section title="Vouched by">
         {vouches.length === 0 ? (
-          <Empty>
-            No one has co-signed your card yet. Show it to people who know you and
-            have them open <Link to="/cosign" className="text-cyan-electric">Verify Peer</Link>.
-          </Empty>
+          <Empty>No one has co-signed this card yet.</Empty>
         ) : (
           <ul className="space-y-2">
             {vouches.map((v) => (
@@ -118,11 +147,6 @@ export default function Card() {
                 </div>
                 <div className="text-xs text-slate-500 font-mono text-right">
                   {new Date(v.created_at).toLocaleDateString()}
-                  {v.match_distance !== null && (
-                    <div className="text-[10px] text-cyan-electric/70">
-                      match {v.match_distance.toFixed(2)}
-                    </div>
-                  )}
                 </div>
               </li>
             ))}
@@ -130,12 +154,9 @@ export default function Card() {
         )}
       </Section>
 
-      <Section title="Credentials">
+      <Section title="Trusted to">
         {activeCreds.length === 0 ? (
-          <Empty>
-            No verified skills yet.{' '}
-            <Link to="/skill-test" className="text-cyan-electric">Take a skill test</Link>.
-          </Empty>
+          <Empty>No verified skills yet.</Empty>
         ) : (
           <ul className="grid sm:grid-cols-2 gap-3">
             {activeCreds.map((c) => (
@@ -155,45 +176,6 @@ export default function Card() {
           </ul>
         )}
       </Section>
-
-      {pendingTests.length > 0 && (
-        <Section title="Pending review">
-          <ul className="space-y-2">
-            {pendingTests.map((t) => (
-              <li
-                key={t.id}
-                className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 space-y-1"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="font-mono text-amber-200">{t.skill}</div>
-                  {t.ai_verdict && (
-                    <div className="text-xs font-mono text-slate-300">
-                      AI: <span className={
-                        t.ai_verdict === 'approve' ? 'text-cyan-electric'
-                        : t.ai_verdict === 'reject' ? 'text-red-300'
-                        : 'text-amber-200'
-                      }>{t.ai_verdict}</span>
-                      {t.ai_score !== null && <> · {t.ai_score}/100</>}
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs text-slate-400">
-                  Submitted {new Date(t.created_at).toLocaleString()} · awaiting peers
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <div className="flex justify-center pt-4">
-        <button
-          onClick={refresh}
-          className="px-4 py-2 text-sm text-slate-400 hover:text-cyan-electric"
-        >
-          ↻ Refresh
-        </button>
-      </div>
     </div>
   );
 }
