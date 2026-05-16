@@ -76,6 +76,9 @@ export async function createSkillTest(input: {
   question: string;
   answer: string;
   duration_seconds: number;
+  ai_score?: number;
+  ai_verdict?: 'approve' | 'reject' | 'borderline';
+  ai_rationale?: string;
 }): Promise<SkillTest> {
   const { data, error } = await supabase
     .from('skill_tests')
@@ -171,10 +174,17 @@ export async function issueCredential(input: {
 
 // After a review is submitted, count verdicts and (atomically enough for a
 // demo) close out the test + issue a credential if it crossed the threshold.
+// The AI verdict counts as one weighted vote alongside the peers.
 export async function maybeFinalizeTest(test_id: string, candidate_id: string, skill: string) {
-  const reviews = await listReviewsForTest(test_id);
-  const approves = reviews.filter((r) => r.verdict === 'approve').length;
-  const rejects = reviews.filter((r) => r.verdict === 'reject').length;
+  const [reviews, { data: testRow }] = await Promise.all([
+    listReviewsForTest(test_id),
+    supabase.from('skill_tests').select('ai_verdict').eq('id', test_id).maybeSingle(),
+  ]);
+  const aiVerdict = (testRow?.ai_verdict ?? null) as 'approve' | 'reject' | 'borderline' | null;
+  let approves = reviews.filter((r) => r.verdict === 'approve').length;
+  let rejects = reviews.filter((r) => r.verdict === 'reject').length;
+  if (aiVerdict === 'approve') approves += 1;
+  if (aiVerdict === 'reject') rejects += 1;
   if (approves >= APPROVAL_THRESHOLD) {
     await setTestStatus(test_id, 'approved');
     // 30-day temporary credential

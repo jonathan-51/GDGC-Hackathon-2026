@@ -148,10 +148,22 @@ export default function Card() {
             {pendingTests.map((t) => (
               <li
                 key={t.id}
-                className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 space-y-1"
               >
-                <div className="font-mono text-amber-200">{t.skill}</div>
-                <div className="text-xs text-slate-400 mt-0.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="font-mono text-amber-200">{t.skill}</div>
+                  {t.ai_verdict && (
+                    <div className="text-xs font-mono text-slate-300">
+                      AI: <span className={
+                        t.ai_verdict === 'approve' ? 'text-cyan-electric'
+                        : t.ai_verdict === 'reject' ? 'text-red-300'
+                        : 'text-amber-200'
+                      }>{t.ai_verdict}</span>
+                      {t.ai_score !== null && <> · {t.ai_score}/100</>}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs text-slate-400">
                   Submitted {new Date(t.created_at).toLocaleString()} · awaiting peers
                 </div>
               </li>

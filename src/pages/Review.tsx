@@ -179,6 +179,13 @@ export default function Review() {
                   {t.answer}
                 </div>
               </div>
+              {t.ai_verdict && (
+                <AiMark
+                  verdict={t.ai_verdict}
+                  score={t.ai_score}
+                  rationale={t.ai_rationale}
+                />
+              )}
             </div>
             <ReviewActions
               onApprove={(notes) =>
@@ -210,6 +217,39 @@ export default function Review() {
             />
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function AiMark({
+  verdict,
+  score,
+  rationale,
+}: {
+  verdict: 'approve' | 'reject' | 'borderline';
+  score: number | null;
+  rationale: string | null;
+}) {
+  const color =
+    verdict === 'approve'
+      ? 'border-cyan-electric/40 bg-cyan-electric/5 text-cyan-electric'
+      : verdict === 'reject'
+        ? 'border-red-400/40 bg-red-500/5 text-red-300'
+        : 'border-amber-400/40 bg-amber-500/5 text-amber-200';
+  return (
+    <div className={`rounded-lg border p-3 ${color}`}>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[10px] uppercase tracking-widest font-mono opacity-70">
+          AI mark · counts as 1 vote
+        </span>
+        <span className="font-mono text-sm">
+          {verdict.toUpperCase()}
+          {score !== null && <span className="opacity-70"> · {score}/100</span>}
+        </span>
+      </div>
+      {rationale && (
+        <p className="text-xs leading-relaxed mt-1 opacity-90">{rationale}</p>
       )}
     </div>
   );

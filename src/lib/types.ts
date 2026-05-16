@@ -21,6 +21,8 @@ export interface VouchWithVoucher extends Vouch {
 
 export type SkillTestStatus = 'pending' | 'approved' | 'rejected';
 
+export type AiVerdict = 'approve' | 'reject' | 'borderline';
+
 export interface SkillTest {
   id: string;
   candidate_id: string;
@@ -29,6 +31,9 @@ export interface SkillTest {
   answer: string;
   duration_seconds: number | null;
   status: SkillTestStatus;
+  ai_score: number | null;
+  ai_verdict: AiVerdict | null;
+  ai_rationale: string | null;
   created_at: string;
 }
 
