@@ -27,7 +27,7 @@ export default function Layout() {
       <nav className="border-b border-white/5 bg-navy-deep/90 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-white shrink-0">
-            <VouchIcon className="w-6 h-6 text-cyan-electric" />
+            <VouchIcon className="w-6 h-6 text-blue-400" />
             <span>Vouch</span>
           </Link>
 
@@ -54,26 +54,26 @@ export default function Layout() {
             {session ? (
               <>
                 <span
-                  className="text-xs text-cyan-electric/80 font-mono truncate max-w-[140px]"
+                  className="text-xs text-blue-400/80 font-mono truncate max-w-[140px]"
                   title={username}
                 >
                   @{username}
                 </span>
                 <button
                   onClick={() => signOut()}
-                  className="text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1.5 rounded-full transition"
+                  className="text-xs font-mono text-slate-300 hover:text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-full transition"
                 >
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link to="/auth?mode=signin" className="text-sm text-slate-300 hover:text-cyan-electric transition-colors">
+                <Link to="/auth?mode=signin" className="text-sm text-slate-300 hover:text-blue-400 transition-colors">
                   Sign in
                 </Link>
                 <Link
                   to="/auth?mode=signup"
-                  className="text-xs font-mono bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 font-semibold px-3 py-1.5 rounded-full hover:bg-cyan-electric/20 transition"
+                  className="text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/40 font-semibold px-3 py-1.5 rounded-full hover:bg-blue-500/20 transition"
                 >
                   Sign up
                 </Link>
@@ -116,13 +116,13 @@ export default function Layout() {
                 {l.label}
               </Link>
             ))}
-            <div className="border-t border-cyan-electric/10 pt-3 flex flex-col gap-3">
+            <div className="border-t border-blue-500/10 pt-3 flex flex-col gap-3">
               {session ? (
                 <>
-                  <span className="text-xs text-cyan-electric/80 font-mono truncate">@{username}</span>
+                  <span className="text-xs text-blue-400/80 font-mono truncate">@{username}</span>
                   <button
                     onClick={() => { signOut(); setMenuOpen(false); }}
-                    className="self-start text-xs font-mono text-slate-300 hover:text-cyan-electric border border-cyan-electric/30 px-3 py-1 rounded-full"
+                    className="self-start text-xs font-mono text-slate-300 hover:text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full"
                   >
                     Sign out
                   </button>
@@ -132,14 +132,14 @@ export default function Layout() {
                   <Link
                     to="/auth?mode=signin"
                     onClick={() => setMenuOpen(false)}
-                    className="flex-1 text-center text-sm font-mono text-slate-200 border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/10 transition"
+                    className="flex-1 text-center text-sm font-mono text-slate-200 border border-blue-500/40 px-4 py-2 rounded-full hover:bg-blue-500/10 transition"
                   >
                     Sign in
                   </Link>
                   <Link
                     to="/auth?mode=signup"
                     onClick={() => setMenuOpen(false)}
-                    className="flex-1 text-center text-sm font-mono font-semibold bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/20 transition"
+                    className="flex-1 text-center text-sm font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/40 px-4 py-2 rounded-full hover:bg-blue-500/20 transition"
                   >
                     Sign up
                   </Link>
