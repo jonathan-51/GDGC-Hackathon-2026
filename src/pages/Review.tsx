@@ -35,11 +35,15 @@ export default function Review() {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [profile, flash]);
 
-  const tests = filter.trim()
-    ? allTests.filter((t) =>
-        t.skill.toLowerCase().includes(filter.trim().toLowerCase()),
-      )
-    : allTests;
+  const tests = (() => {
+    const q = filter.trim().toLowerCase().replace(/^@/, '');
+    if (!q) return allTests;
+    return allTests.filter(
+      (t) =>
+        t.skill.toLowerCase().includes(q) ||
+        t.candidate.handle.toLowerCase().includes(q),
+    );
+  })();
 
   if (loading) {
     return <div className="text-slate-400 font-mono">Loading…</div>;
@@ -108,13 +112,13 @@ export default function Review() {
 
       <div className="space-y-2">
         <label className="block text-sm font-mono text-slate-400 uppercase tracking-widest">
-          Filter by skill
+          Filter by skill or person
         </label>
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="e.g. Software engineering, Medicine — leave blank for everything"
+          placeholder='e.g. "Medicine" or "@alice" — leave blank for everything'
           className="w-full bg-navy-deep border border-cyan-electric/30 text-white font-mono px-4 py-3 rounded focus:outline-none focus:border-cyan-electric transition"
         />
         <div className="text-xs text-slate-500 font-mono">

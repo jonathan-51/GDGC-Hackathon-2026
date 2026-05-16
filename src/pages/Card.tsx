@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '../hooks/useUser';
 import { listTestsForCandidate, updateProfilePhoto } from '../lib/db';
 import { captureVideoFrame } from '../lib/biometric';
-import type { SkillTest } from '../lib/types';
+import type { Credential, SkillTest } from '../lib/types';
 
 export default function Card() {
   const { passport, profile, vouches, credentials, loading, error, refresh } = useUser();
@@ -208,21 +208,11 @@ export default function Card() {
             <Link to="/skill-test" className="text-cyan-electric">Take a skill test</Link>.
           </Empty>
         ) : (
-          <ul className="grid sm:grid-cols-2 gap-3">
-            {activeCreds.map((c) => (
-              <li
-                key={c.id}
-                className="rounded-lg border border-cyan-electric/30 bg-cyan-electric/5 p-4"
-              >
-                <div className="font-mono text-cyan-electric text-lg">{c.skill}</div>
-                <div className="text-xs text-slate-400 mt-1">
-                  Issued {new Date(c.issued_at).toLocaleDateString()}
-                  {c.expires_at && (
-                    <> · expires {new Date(c.expires_at).toLocaleDateString()}</>
-                  )}
-                </div>
-              </li>
-            ))}
+          <ul className="space-y-3">
+            {activeCreds.map((c) => {
+              const test = c.test_id ? tests.find((t) => t.id === c.test_id) : undefined;
+              return <CredentialCard key={c.id} credential={c} test={test} />;
+            })}
           </ul>
         )}
       </Section>
@@ -423,6 +413,61 @@ function Empty({ children }: { children: React.ReactNode }) {
     <div className="rounded-lg border border-cyan-electric/10 bg-navy-deep/40 px-4 py-6 text-center text-slate-400 text-sm">
       {children}
     </div>
+  );
+}
+
+function CredentialCard({ credential: c, test }: { credential: Credential; test?: SkillTest }) {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = !!(test && (test.video_url || test.question || test.answer));
+  return (
+    <li className="rounded-lg border border-cyan-electric/30 bg-cyan-electric/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => canExpand && setExpanded((v) => !v)}
+        className="w-full px-4 py-3 text-left flex items-center justify-between gap-2"
+        disabled={!canExpand}
+      >
+        <div className="space-y-0.5">
+          <div className="font-mono text-cyan-electric text-lg">{c.skill}</div>
+          <div className="text-xs text-slate-400">
+            Issued {new Date(c.issued_at).toLocaleDateString()}
+            {c.expires_at && <> · expires {new Date(c.expires_at).toLocaleDateString()}</>}
+          </div>
+        </div>
+        {canExpand && (
+          <svg
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={`w-4 h-4 text-cyan-electric/70 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          >
+            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+      {expanded && test && (
+        <div className="border-t border-cyan-electric/20 px-4 py-4 space-y-4">
+          {test.video_url && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Interview recording</div>
+              <video src={test.video_url} controls className="w-full rounded-lg bg-black border border-white/5 max-h-64" />
+            </div>
+          )}
+          {test.question && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Question</div>
+              <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{test.question}</div>
+            </div>
+          )}
+          {test.answer && (
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">Spoken transcript</div>
+              <div className="font-mono text-sm text-slate-200 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
+                {test.answer}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
   );
 }
 
