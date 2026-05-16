@@ -3,10 +3,8 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { signOut, useAuth } from '../hooks/useAuth';
 
 const NAV_LINKS = [
-  { label: 'How it works', to: '/#how' },
   { label: 'Live Skill Assessment', to: '/skill-test' },
-  { label: 'Verify Peer', to: '/cosign' },
-  { label: 'Scan Profile', to: '/scan' },
+  { label: 'Verify & Scan', to: '/scan' },
   { label: 'Nearby', to: '/map' },
   { label: 'Review Queue', to: '/review' },
   { label: 'Register', to: '/register' },
@@ -70,12 +68,11 @@ export default function Layout() {
               </>
             ) : (
               <>
-                <Link to="/auth" className="text-sm text-slate-300 hover:text-cyan-electric transition-colors">
+                <Link to="/auth?mode=signin" className="text-sm text-slate-300 hover:text-cyan-electric transition-colors">
                   Sign in
                 </Link>
                 <Link
-                  to="/auth"
-                  state={{ from: '/register' }}
+                  to="/auth?mode=signup"
                   className="text-xs font-mono bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 font-semibold px-3 py-1.5 rounded-full hover:bg-cyan-electric/20 transition"
                 >
                   Sign up
@@ -133,15 +130,14 @@ export default function Layout() {
               ) : (
                 <div className="flex gap-2">
                   <Link
-                    to="/auth"
+                    to="/auth?mode=signin"
                     onClick={() => setMenuOpen(false)}
                     className="flex-1 text-center text-sm font-mono text-slate-200 border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/10 transition"
                   >
                     Sign in
                   </Link>
                   <Link
-                    to="/auth"
-                    state={{ from: '/register' }}
+                    to="/auth?mode=signup"
                     onClick={() => setMenuOpen(false)}
                     className="flex-1 text-center text-sm font-mono font-semibold bg-cyan-electric/10 text-cyan-electric border border-cyan-electric/40 px-4 py-2 rounded-full hover:bg-cyan-electric/20 transition"
                   >
