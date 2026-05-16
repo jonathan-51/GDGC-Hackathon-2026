@@ -40,7 +40,13 @@ export default function QRScanner({ onResult, onError }: Props) {
         try {
           await scanner.start(
             cameraIdOrConfig,
-            { fps: 10, qrbox: { width: 240, height: 240 } },
+            {
+              fps: 20,
+              qrbox: (w, h) => {
+                const side = Math.floor(Math.min(w, h) * 0.85);
+                return { width: side, height: side };
+              },
+            },
             onScan,
             () => undefined,
           );
