@@ -94,6 +94,19 @@ export async function listProfiles(
   return (data ?? []) as Pick<Profile, 'id' | 'handle' | 'photo'>[];
 }
 
+export async function listFaceEmbeddings(): Promise<
+  { id: string; handle: string; face_embedding: number[] }[]
+> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, handle, face_embedding')
+    .not('face_embedding', 'is', null);
+  if (error) throw error;
+  return (data ?? []).filter(
+    (r) => Array.isArray(r.face_embedding) && r.face_embedding.length > 0,
+  ) as { id: string; handle: string; face_embedding: number[] }[];
+}
+
 export async function getProfileByHash(hash: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')

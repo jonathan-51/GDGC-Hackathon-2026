@@ -7,17 +7,19 @@ import {
   captureVideoFrame,
   clearPassport,
   detectBiometricType,
+  euclideanDistance,
   getFaceEmbedding,
   hashEmbedding,
   loadFaceModels,
   loadPassport,
+  MATCH_THRESHOLD,
   savePassport,
   type StoredPassport,
 } from '../lib/biometric';
 import { platformAuthenticatorAvailable, registerPlatformBiometric, identifyHardwareWitness } from '../lib/webauthn';
 import HardwareWitnessBox from '../components/HardwareWitnessBox';
 import { supabase } from '../lib/supabase';
-import { getProfileByHandle, getProfileByUserId } from '../lib/db';
+import { getProfileByHandle, getProfileByUserId, listFaceEmbeddings } from '../lib/db';
 
 type Stage = 'idle' | 'loading-models' | 'camera-on' | 'capturing' | 'no-face' | 'webauthn' | 'syncing' | 'done';
 
@@ -115,6 +117,24 @@ export default function Register() {
       const handleOwner = await getProfileByHandle(trimmed);
       if (handleOwner) {
         throw new Error(`Handle @${trimmed} is already taken. Pick another.`);
+      }
+
+      // Duplicate-face check: scan every existing profile's embedding and
+      // refuse this registration if any of them are close enough to be the
+      // same person. Stops one human from spinning up multiple accounts.
+      if (input.source === 'face' && input.embedding.length > 0) {
+        const existingEmbeddings = await listFaceEmbeddings();
+        const candidate = Float32Array.from(input.embedding);
+        let closest: { handle: string; distance: number } | null = null;
+        for (const row of existingEmbeddings) {
+          const d = euclideanDistance(candidate, row.face_embedding);
+          if (!closest || d < closest.distance) closest = { handle: row.handle, distance: d };
+        }
+        if (closest && closest.distance < MATCH_THRESHOLD) {
+          throw new Error(
+            `This face is already registered as @${closest.handle} (distance ${closest.distance.toFixed(2)} < ${MATCH_THRESHOLD}). One face, one account.`,
+          );
+        }
       }
 
       const { data: profile, error: dbError } = await supabase
