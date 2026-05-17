@@ -222,9 +222,6 @@ export default function PublicProfile() {
                 <div className="font-mono text-cyan-electric text-lg">{c.skill}</div>
                 <div className="text-xs text-slate-400 mt-1">
                   Issued {new Date(c.issued_at).toLocaleDateString()}
-                  {c.expires_at && (
-                    <> · expires {new Date(c.expires_at).toLocaleDateString()}</>
-                  )}
                 </div>
               </li>
             ))}
