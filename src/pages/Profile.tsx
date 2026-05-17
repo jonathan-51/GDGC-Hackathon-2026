@@ -31,6 +31,7 @@ export default function PublicProfile() {
   const [reviewsByTest, setReviewsByTest] = useState<Record<string, SkillReviewWithReviewer[]>>({});
   const [credentialPhotos, setCredentialPhotos] = useState<CredentialPhoto[]>([]);
   const [lightbox, setLightbox] = useState<CredentialPhoto | null>(null);
+  const [showVouchers, setShowVouchers] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +151,14 @@ export default function PublicProfile() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
-              <Stat label="Vouches" value={vouches.length} />
+              <button
+                type="button"
+                onClick={() => vouches.length > 0 && setShowVouchers(true)}
+                className={`rounded-lg border border-cyan-electric/15 bg-navy-light/30 py-2 transition ${vouches.length > 0 ? 'hover:bg-navy-light/50 cursor-pointer' : 'cursor-default'}`}
+              >
+                <div className="text-2xl font-mono text-cyan-electric">{vouches.length}</div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest">Vouches</div>
+              </button>
               <Stat label="Credentials" value={activeCreds.length} />
             </div>
             {viewerProfile && viewerProfile.id !== profile.id && (() => {
@@ -178,6 +186,52 @@ export default function PublicProfile() {
           </div>
         </div>
       </motion.div>
+
+      {showVouchers && (
+        <div
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur flex items-center justify-center p-4"
+          onClick={() => setShowVouchers(false)}
+        >
+          <div
+            className="bg-navy-deep border border-cyan-electric/30 rounded-2xl shadow-glow w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-mono text-sm uppercase tracking-widest text-slate-400">
+                Vouched for @{profile.handle}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowVouchers(false)}
+                className="text-slate-500 hover:text-slate-300 font-mono text-xs transition"
+              >
+                ✕
+              </button>
+            </div>
+            <ul className="space-y-2 max-h-80 overflow-y-auto">
+              {vouches.map((v) => (
+                <li key={v.id} className="flex items-center justify-between rounded-lg border border-cyan-electric/15 bg-navy-light/30 px-4 py-2.5">
+                  <div>
+                    <Link
+                      to={`/p/${v.voucher.handle}`}
+                      onClick={() => setShowVouchers(false)}
+                      className="font-mono text-white hover:text-cyan-electric transition text-sm"
+                    >
+                      @{v.voucher.handle}
+                    </Link>
+                    {v.context && (
+                      <div className="text-xs text-slate-400 mt-0.5">{v.context}</div>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {new Date(v.created_at).toLocaleDateString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <Section title="Vouched by">
         {vouches.length === 0 ? (
