@@ -332,6 +332,16 @@ export default function PublicProfile() {
                       </div>
                     </div>
                   </div>
+                  {t.question && (
+                    <div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
+                        Interview question
+                      </div>
+                      <div className="font-mono text-sm text-[#F2DDA4]/90 bg-black/30 rounded px-3 py-2 border border-white/5 whitespace-pre-wrap">
+                        {t.question}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
                       Spoken transcript
